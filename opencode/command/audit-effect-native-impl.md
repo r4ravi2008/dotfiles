@@ -1,0 +1,1 @@
+Audit the changes in the current changes in the current branch compared to master and make sure we are using effect native functional paradigms that compose while minimizing imperative coding styles. Remove any deprecated/duplicate code, avoid usage of nulls/any/unknowns.

@@ -18,3 +18,17 @@ nvim/.luarc.json
 # Sensitive files (add patterns for any secrets)
 *.local.secret
 .env
+
+# AI Agents (rulesync) - generated files
+ai-agents/rulesync.local.jsonc
+ai-agents/AGENTS.md
+ai-agents/.agents/
+ai-agents/.aiignore
+ai-agents/.cursor/
+ai-agents/.github/
+
+# OpenCode
+opencode/node_modules/
+opencode/package-lock.json
+opencode/bun.lock
+opencode/.opencode/
