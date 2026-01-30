@@ -2,7 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
   "targets": [
     "agentsmd",
-    "opencode"
+    "opencode",
+    "codexcli"
   ],
   "features": [
     "rules",

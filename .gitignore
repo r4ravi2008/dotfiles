@@ -23,6 +23,9 @@ nvim/.luarc.json
 ai-agents/rulesync.local.jsonc
 ai-agents/AGENTS.md
 ai-agents/.agents/
+ai-agents/.opencode/
+ai-agents/.codex/
+ai-agents/opencode.json
 ai-agents/.aiignore
 ai-agents/.cursor/
 ai-agents/.github/

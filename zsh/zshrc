@@ -4,6 +4,10 @@
 # Backup: ~/.zshrc.backup.*
 # =============================================================================
 
+if [[ -n "${ZSH_PROFILE_STARTUP-}" ]]; then
+  zmodload zsh/zprof 2>/dev/null
+fi
+
 # -----------------------------------------------------------------------------
 # 1. PATH CONFIGURATION
 # -----------------------------------------------------------------------------
@@ -21,11 +25,17 @@ export PATH="$HOME/go/bin:$PATH"
 if [[ "$OSTYPE" == darwin* ]]; then
   # macOS: Homebrew (Apple Silicon or Intel)
   if [[ -x /opt/homebrew/bin/brew ]]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-    _brew_prefix="/opt/homebrew"
+    # `brew shellenv` is relatively slow; only run it for login shells
+    # (or when the environment wasn't already inherited).
+    if [[ -o login || -z "${HOMEBREW_PREFIX-}" ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+    _brew_prefix="${HOMEBREW_PREFIX:-/opt/homebrew}"
   elif [[ -x /usr/local/bin/brew ]]; then
-    eval "$(/usr/local/bin/brew shellenv)"
-    _brew_prefix="/usr/local"
+    if [[ -o login || -z "${HOMEBREW_PREFIX-}" ]]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    fi
+    _brew_prefix="${HOMEBREW_PREFIX:-/usr/local}"
   fi
   # Homebrew-installed tools (avoid slow `brew --prefix` call)
   if [[ -n "$_brew_prefix" ]]; then
@@ -36,9 +46,13 @@ if [[ "$OSTYPE" == darwin* ]]; then
 elif [[ "$OSTYPE" == linux* ]]; then
   # Linux: Linuxbrew (if installed)
   if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    if [[ -o login || -z "${HOMEBREW_PREFIX-}" ]]; then
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    fi
   elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
-    eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+    if [[ -o login || -z "${HOMEBREW_PREFIX-}" ]]; then
+      eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+    fi
   fi
   # Common Linux paths
   [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
@@ -47,16 +61,27 @@ fi
 # -----------------------------------------------------------------------------
 # 2. COMPLETION SYSTEM
 # -----------------------------------------------------------------------------
-fpath+=${ZDOTDIR:-~}/.zsh_functions
-fpath+=~/.zfunc
-autoload -Uz compinit
-if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
-  compinit
-else
-  compinit -C
+if [[ -t 0 && -t 1 ]]; then
+  fpath+=${ZDOTDIR:-~}/.zsh_functions
+  fpath+=~/.zfunc
+
+  autoload -Uz compinit
+  ZSH_COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-${ZSH_VERSION}"
+  [[ -d "${ZSH_COMPDUMP:h}" ]] || mkdir -p "${ZSH_COMPDUMP:h}" 2>/dev/null
+  if ! compinit -C -d "$ZSH_COMPDUMP"; then
+    # Cache can go stale (e.g. vendor completions added/removed); rebuild once.
+    command rm -f -- "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc" 2>/dev/null
+    compinit -d "$ZSH_COMPDUMP"
+  fi
+
+  # Compile the compdump for faster startups.
+  if [[ -f "$ZSH_COMPDUMP" && ( ! -f "$ZSH_COMPDUMP.zwc" || "$ZSH_COMPDUMP" -nt "$ZSH_COMPDUMP.zwc" ) ]]; then
+    zcompile -R -- "$ZSH_COMPDUMP" 2>/dev/null
+  fi
+
+  zstyle ':completion:*' menu select
+  zstyle ':completion:*' matcher-list 'm:{a-zA-Z-_}={A-Za-z_-}' 'r:|=*' 'l:|=* r:|=*'
 fi
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z-_}={A-Za-z_-}' 'r:|=*' 'l:|=* r:|=*'
 
 # -----------------------------------------------------------------------------
 # 3. PROMPT (robbyrussell-style, inline)
@@ -73,42 +98,46 @@ PROMPT='%(?:%F{green}➜ :%F{red}➜ )%F{cyan}%c%f ${vcs_info_msg_0_}'
 # -----------------------------------------------------------------------------
 # 4. VI-MODE (inline, no plugin)
 # -----------------------------------------------------------------------------
-bindkey -v
-export KEYTIMEOUT=1
+if [[ -t 0 && -t 1 ]]; then
+  bindkey -v
+  export KEYTIMEOUT=1
 
-# Change cursor shape for different vi modes
-function zle-keymap-select {
-  if [[ ${KEYMAP} == vicmd ]] || [[ $1 = 'block' ]]; then
-    echo -ne '\e[2 q'  # Block cursor
-  elif [[ ${KEYMAP} == main ]] || [[ ${KEYMAP} == viins ]] || [[ $1 = 'beam' ]]; then
-    echo -ne '\e[6 q'  # Beam cursor
-  fi
-}
-zle -N zle-keymap-select
+  # Change cursor shape for different vi modes
+  function zle-keymap-select {
+    if [[ ${KEYMAP} == vicmd ]] || [[ $1 = 'block' ]]; then
+      echo -ne '\e[2 q'  # Block cursor
+    elif [[ ${KEYMAP} == main ]] || [[ ${KEYMAP} == viins ]] || [[ $1 = 'beam' ]]; then
+      echo -ne '\e[6 q'  # Beam cursor
+    fi
+  }
+  zle -N zle-keymap-select
 
-function zle-line-init {
-  echo -ne '\e[6 q'  # Start with beam cursor
-}
-zle -N zle-line-init
+  function zle-line-init {
+    echo -ne '\e[6 q'  # Start with beam cursor
+  }
+  zle -N zle-line-init
 
-# Better searching in vi mode
-bindkey '^R' history-incremental-search-backward
-bindkey '^P' up-line-or-history
-bindkey '^N' down-line-or-history
-bindkey '^A' beginning-of-line
-bindkey '^E' end-of-line
-bindkey '^W' backward-kill-word
+  # Better searching in vi mode
+  bindkey '^R' history-incremental-search-backward
+  bindkey '^P' up-line-or-history
+  bindkey '^N' down-line-or-history
+  bindkey '^A' beginning-of-line
+  bindkey '^E' end-of-line
+  bindkey '^W' backward-kill-word
+fi
 
 # -----------------------------------------------------------------------------
 # 5. ZSH-AUTOSUGGESTIONS (direct source, fast)
 # -----------------------------------------------------------------------------
-if [[ -f ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
-  source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-elif [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
-  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+if [[ -t 0 && -t 1 ]]; then
+  if [[ -f ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+  elif [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  fi
+  ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+  bindkey '^F' autosuggest-accept
 fi
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-bindkey '^F' autosuggest-accept
 
 # -----------------------------------------------------------------------------
 # 6. HISTORY
@@ -198,22 +227,35 @@ function bunx() {
 # -----------------------------------------------------------------------------
 # 9. FNM (fast node manager)
 # -----------------------------------------------------------------------------
-eval "$(fnm env --use-on-cd)"
+FNM_PATH="$HOME/.local/share/fnm"
+if [ -d "$FNM_PATH" ]; then
+  export PATH="$FNM_PATH:$PATH"
+  eval "$(fnm env --use-on-cd)"
+fi
 
 # -----------------------------------------------------------------------------
 # 10. FZF
 # -----------------------------------------------------------------------------
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
-if command -v fd &> /dev/null; then
-  export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+if [[ -t 0 && -t 1 ]]; then
+  if [[ -d "$HOME/.fzf" ]]; then
+    if [[ "$PATH" != *"$HOME/.fzf/bin"* ]]; then
+      export PATH="$PATH:$HOME/.fzf/bin"
+    fi
+    [[ -f "$HOME/.fzf/shell/key-bindings.zsh" ]] && source "$HOME/.fzf/shell/key-bindings.zsh"
+    [[ -f "$HOME/.fzf/shell/completion.zsh" ]] && source "$HOME/.fzf/shell/completion.zsh"
+  fi
+
+  export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+  if (( $+commands[fd] )); then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  fi
 fi
 
 # -----------------------------------------------------------------------------
 # 11. ZOXIDE (optional, smarter cd)
 # -----------------------------------------------------------------------------
-if command -v zoxide &> /dev/null; then
+if [[ -t 0 && -t 1 ]] && (( $+commands[zoxide] )); then
   eval "$(zoxide init zsh)"
 fi
 
@@ -253,3 +295,10 @@ alias grep='grep --color=auto'
 # 14. EXTERNAL SOURCES (machine-specific, optional)
 # -----------------------------------------------------------------------------
 [[ -f ~/mac-dev-setup/profile/intuit.sh ]] && source ~/mac-dev-setup/profile/intuit.sh
+
+# Don't leak a failure status from optional blocks into interactive `zsh -ic`.
+if [[ -n "${ZSH_PROFILE_STARTUP-}" ]]; then
+  zprof 2>/dev/null
+fi
+
+true

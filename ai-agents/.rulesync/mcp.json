@@ -1,6 +1,7 @@
 {
   "mcpServers": {
     "serena": {
+      "description": "Semantic coding tools for codebase exploration and manipulation",
       "type": "stdio",
       "command": "uvx",
       "args": [
@@ -18,11 +19,22 @@
       "env": {}
     },
     "context7": {
+      "description": "Up-to-date documentation and code examples for libraries",
       "type": "stdio",
       "command": "npx",
       "args": [
         "-y",
         "@upstash/context7-mcp"
+      ],
+      "env": {}
+    },
+    "playwright": {
+      "description": "Browser automation via Playwright (accessibility-tree driven)",
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
       ],
       "env": {}
     }

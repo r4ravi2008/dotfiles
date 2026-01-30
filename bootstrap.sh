@@ -25,171 +25,179 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Backup existing file/directory
 # -----------------------------------------------------------------------------
 backup_if_exists() {
-    local target="$1"
-    if [[ -e "$target" || -L "$target" ]]; then
-        mkdir -p "$BACKUP_DIR"
-        mv "$target" "$BACKUP_DIR/"
-        log_warn "Backed up existing $(basename "$target") to $BACKUP_DIR/"
-    fi
+	local target="$1"
+	if [[ -e "$target" || -L "$target" ]]; then
+		mkdir -p "$BACKUP_DIR"
+		mv "$target" "$BACKUP_DIR/"
+		log_warn "Backed up existing $(basename "$target") to $BACKUP_DIR/"
+	fi
 }
 
 # -----------------------------------------------------------------------------
 # Create symlink
 # -----------------------------------------------------------------------------
 create_symlink() {
-    local source="$1"
-    local target="$2"
-    
-    if [[ -L "$target" && "$(readlink "$target")" == "$source" ]]; then
-        log_info "Symlink already exists: $target -> $source"
-        return
-    fi
-    
-    backup_if_exists "$target"
-    ln -s "$source" "$target"
-    log_success "Created symlink: $target -> $source"
+	local source="$1"
+	local target="$2"
+
+	if [[ -L "$target" && "$(readlink "$target")" == "$source" ]]; then
+		log_info "Symlink already exists: $target -> $source"
+		return
+	fi
+
+	backup_if_exists "$target"
+	ln -s "$source" "$target"
+	log_success "Created symlink: $target -> $source"
 }
 
 # -----------------------------------------------------------------------------
 # Install gpakosz/.tmux
 # -----------------------------------------------------------------------------
 install_tmux_framework() {
-    if [[ -d "$HOME/.tmux" ]]; then
-        log_info "gpakosz/.tmux already installed"
-    else
-        log_info "Installing gpakosz/.tmux..."
-        git clone https://github.com/gpakosz/.tmux.git "$HOME/.tmux"
-        log_success "Installed gpakosz/.tmux"
-    fi
-    
-    # Create symlink for .tmux.conf
-    create_symlink "$HOME/.tmux/.tmux.conf" "$HOME/.tmux.conf"
+	if [[ -d "$HOME/.tmux" ]]; then
+		log_info "gpakosz/.tmux already installed"
+	else
+		log_info "Installing gpakosz/.tmux..."
+		git clone https://github.com/gpakosz/.tmux.git "$HOME/.tmux"
+		log_success "Installed gpakosz/.tmux"
+	fi
+
+	# Create symlink for .tmux.conf
+	create_symlink "$HOME/.tmux/.tmux.conf" "$HOME/.tmux.conf"
 }
 
 # -----------------------------------------------------------------------------
 # Install oh-my-zsh plugins
 # -----------------------------------------------------------------------------
 install_zsh_plugins() {
-    local ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-    
-    # Ensure oh-my-zsh is installed (for plugin directory structure)
-    if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
-        log_info "Installing oh-my-zsh..."
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        log_success "Installed oh-my-zsh"
-    fi
-    
-    mkdir -p "$ZSH_CUSTOM/plugins"
-    
-    # zsh-autosuggestions
-    if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]; then
-        log_info "Installing zsh-autosuggestions..."
-        git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-        log_success "Installed zsh-autosuggestions"
-    else
-        log_info "zsh-autosuggestions already installed"
-    fi
-    
-    # zsh-syntax-highlighting
-    if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]]; then
-        log_info "Installing zsh-syntax-highlighting..."
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-        log_success "Installed zsh-syntax-highlighting"
-    else
-        log_info "zsh-syntax-highlighting already installed"
-    fi
+	local ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
+	# Ensure oh-my-zsh is installed (for plugin directory structure)
+	if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+		log_info "Installing oh-my-zsh..."
+		sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+		log_success "Installed oh-my-zsh"
+	fi
+
+	mkdir -p "$ZSH_CUSTOM/plugins"
+
+	# zsh-autosuggestions
+	if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]; then
+		log_info "Installing zsh-autosuggestions..."
+		git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+		log_success "Installed zsh-autosuggestions"
+	else
+		log_info "zsh-autosuggestions already installed"
+	fi
+
+	# zsh-syntax-highlighting
+	if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]]; then
+		log_info "Installing zsh-syntax-highlighting..."
+		git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+		log_success "Installed zsh-syntax-highlighting"
+	else
+		log_info "zsh-syntax-highlighting already installed"
+	fi
 }
 
 # -----------------------------------------------------------------------------
 # Setup AI Agents (OpenCode, Cursor, etc.)
 # -----------------------------------------------------------------------------
 setup_ai_agents() {
-    log_info "Setting up AI agent configurations..."
-    
-    # Ensure config directories exist
-    mkdir -p "$HOME/.config/opencode"
-    mkdir -p "$HOME/.cursor"
-    
-    # OpenCode configuration
-    create_symlink "$DOTFILES_DIR/opencode/config.json" "$HOME/.config/opencode/config.json"
-    create_symlink "$DOTFILES_DIR/opencode/ocx.jsonc" "$HOME/.config/opencode/ocx.jsonc"
-    create_symlink "$DOTFILES_DIR/opencode/package.json" "$HOME/.config/opencode/package.json"
-    create_symlink "$DOTFILES_DIR/opencode/command" "$HOME/.config/opencode/command"
-    create_symlink "$DOTFILES_DIR/opencode/plugins" "$HOME/.config/opencode/plugins"
-    
-    # Global AGENTS.md (generated by rulesync)
-    if [[ -f "$DOTFILES_DIR/ai-agents/AGENTS.md" ]]; then
-        create_symlink "$DOTFILES_DIR/ai-agents/AGENTS.md" "$HOME/AGENTS.md"
-    else
-        log_warn "AGENTS.md not found. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' first."
-    fi
-    
-    # Cursor MCP config (if exists)
-    if [[ -f "$DOTFILES_DIR/cursor/mcp.json" ]]; then
-        create_symlink "$DOTFILES_DIR/cursor/mcp.json" "$HOME/.cursor/mcp.json"
-    fi
-    
-    # Install OpenCode plugin dependencies
-    if [[ -f "$DOTFILES_DIR/opencode/package.json" ]]; then
-        log_info "Installing OpenCode plugin dependencies..."
-        (cd "$HOME/.config/opencode" && npm install --silent 2>/dev/null) || log_warn "npm install failed, continuing..."
-    fi
-    
-    log_success "AI agent configurations set up"
+	log_info "Setting up AI agent configurations..."
+
+	# Ensure config directories exist
+	mkdir -p "$HOME/.config/opencode"
+	mkdir -p "$HOME/.cursor"
+
+	# OpenCode configuration
+	create_symlink "$DOTFILES_DIR/opencode/config.json" "$HOME/.config/opencode/config.json"
+	# OpenCode global config (includes MCP). Prefer rulesync-generated config when present.
+	if [[ -f "$DOTFILES_DIR/ai-agents/opencode.json" ]]; then
+		create_symlink "$DOTFILES_DIR/ai-agents/opencode.json" "$HOME/.config/opencode/opencode.json"
+	else
+		log_warn "OpenCode config (ai-agents/opencode.json) not found. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' to generate it."
+	fi
+	create_symlink "$DOTFILES_DIR/opencode/ocx.jsonc" "$HOME/.config/opencode/ocx.jsonc"
+	create_symlink "$DOTFILES_DIR/opencode/package.json" "$HOME/.config/opencode/package.json"
+	create_symlink "$DOTFILES_DIR/opencode/command" "$HOME/.config/opencode/command"
+	create_symlink "$DOTFILES_DIR/opencode/plugins" "$HOME/.config/opencode/plugins"
+
+	# Global AGENTS.md (generated by rulesync)
+	if [[ -f "$DOTFILES_DIR/ai-agents/AGENTS.md" ]]; then
+		create_symlink "$DOTFILES_DIR/ai-agents/AGENTS.md" "$HOME/AGENTS.md"
+	else
+		log_warn "AGENTS.md not found. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' first."
+	fi
+
+	# Cursor MCP config (rulesync source of truth)
+	if [[ -f "$DOTFILES_DIR/ai-agents/.rulesync/mcp.json" ]]; then
+		create_symlink "$DOTFILES_DIR/ai-agents/.rulesync/mcp.json" "$HOME/.cursor/mcp.json"
+	elif [[ -f "$DOTFILES_DIR/cursor/mcp.json" ]]; then
+		create_symlink "$DOTFILES_DIR/cursor/mcp.json" "$HOME/.cursor/mcp.json"
+	fi
+
+	# Install OpenCode plugin dependencies
+	if [[ -f "$DOTFILES_DIR/opencode/package.json" ]]; then
+		log_info "Installing OpenCode plugin dependencies..."
+		(cd "$HOME/.config/opencode" && npm install --silent 2>/dev/null) || log_warn "npm install failed, continuing..."
+	fi
+
+	log_success "AI agent configurations set up"
 }
 
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
-    echo "========================================"
-    echo "       Dotfiles Bootstrap Script        "
-    echo "========================================"
-    echo ""
-    
-    if [[ ! -d "$DOTFILES_DIR" ]]; then
-        log_error "Dotfiles directory not found at $DOTFILES_DIR"
-        exit 1
-    fi
-    
-    # Neovim config
-    log_info "Setting up Neovim configuration..."
-    mkdir -p "$HOME/.config"
-    create_symlink "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
-    
-    # Zsh config
-    log_info "Setting up Zsh configuration..."
-    create_symlink "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
-    create_symlink "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
-    
-    # Tmux config
-    log_info "Setting up Tmux configuration..."
-    install_tmux_framework
-    create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
-    
-    # Install zsh plugins
-    log_info "Setting up Zsh plugins..."
-    install_zsh_plugins
-    
-    # AI Agents configuration (OpenCode, Cursor, etc.)
-    log_info "Setting up AI Agents configuration..."
-    setup_ai_agents
-    
-    echo ""
-    echo "========================================"
-    log_success "Bootstrap complete!"
-    echo "========================================"
-    echo ""
-    log_info "Next steps:"
-    echo "  1. Restart your shell or run: source ~/.zshrc"
-    echo "  2. Open nvim to let Lazy install plugins"
-    echo "  3. Start a new tmux session"
-    echo "  4. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' to generate AI rules"
-    echo ""
-    
-    if [[ -d "$BACKUP_DIR" ]]; then
-        log_warn "Backups saved to: $BACKUP_DIR"
-    fi
+	echo "========================================"
+	echo "       Dotfiles Bootstrap Script        "
+	echo "========================================"
+	echo ""
+
+	if [[ ! -d "$DOTFILES_DIR" ]]; then
+		log_error "Dotfiles directory not found at $DOTFILES_DIR"
+		exit 1
+	fi
+
+	# Neovim config
+	log_info "Setting up Neovim configuration..."
+	mkdir -p "$HOME/.config"
+	create_symlink "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
+
+	# Zsh config
+	log_info "Setting up Zsh configuration..."
+	create_symlink "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
+	create_symlink "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
+
+	# Tmux config
+	log_info "Setting up Tmux configuration..."
+	install_tmux_framework
+	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
+
+	# Install zsh plugins
+	log_info "Setting up Zsh plugins..."
+	install_zsh_plugins
+
+	# AI Agents configuration (OpenCode, Cursor, etc.)
+	log_info "Setting up AI Agents configuration..."
+	setup_ai_agents
+
+	echo ""
+	echo "========================================"
+	log_success "Bootstrap complete!"
+	echo "========================================"
+	echo ""
+	log_info "Next steps:"
+	echo "  1. Restart your shell or run: source ~/.zshrc"
+	echo "  2. Open nvim to let Lazy install plugins"
+	echo "  3. Start a new tmux session"
+	echo "  4. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' to generate AI rules"
+	echo ""
+
+	if [[ -d "$BACKUP_DIR" ]]; then
+		log_warn "Backups saved to: $BACKUP_DIR"
+	fi
 }
 
 main "$@"
