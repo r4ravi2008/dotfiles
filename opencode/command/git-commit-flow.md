@@ -1,1 +1,1 @@
-Analyze all the files in the current repo staged, unstage. Figure out which files are artifacts that are not required to be committed. And then figure out group logical changes into features and commit them as separate comments.
+Analyze all files in the current repo: staged and unstaged. Identify which files are artifacts and should not be committed. Then group logical changes into features and commit them as separate commits.
