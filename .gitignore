@@ -1,0 +1,13 @@
+# OS files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Neovim
+nvim/lazy-lock.json
+nvim/.luarc.json
+
+# Sensitive files (add patterns for any secrets)
+*.local.secret
+.env

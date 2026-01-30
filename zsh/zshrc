@@ -1,0 +1,226 @@
+# =============================================================================
+# ULTRA-FAST ZSHRC - No oh-my-zsh overhead
+# Startup target: <200ms
+# Backup: ~/.zshrc.backup.*
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. PATH CONFIGURATION
+# -----------------------------------------------------------------------------
+typeset -U PATH  # Ensure unique entries only
+
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.opencode/bin:$PATH"
+export PATH="$HOME/.emacs.d/bin:$PATH"
+export PATH="$HOME/.bun/bin:$PATH"
+export PATH="$HOME/.codeium/windsurf/bin:$PATH"
+export PATH="$HOME/go/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/opt/homebrew/sbin:$PATH"
+export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
+export PATH="/opt/homebrew/opt/gnupg@2.2/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
+
+# -----------------------------------------------------------------------------
+# 2. COMPLETION SYSTEM
+# -----------------------------------------------------------------------------
+fpath+=${ZDOTDIR:-~}/.zsh_functions
+fpath+=~/.zfunc
+autoload -Uz compinit
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+  compinit
+else
+  compinit -C
+fi
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z-_}={A-Za-z_-}' 'r:|=*' 'l:|=* r:|=*'
+
+# -----------------------------------------------------------------------------
+# 3. PROMPT (robbyrussell-style, inline)
+# -----------------------------------------------------------------------------
+autoload -Uz colors && colors
+autoload -Uz vcs_info
+precmd() { vcs_info }
+zstyle ':vcs_info:git:*' formats '%F{blue}git:(%F{red}%b%F{blue})%f '
+zstyle ':vcs_info:*' enable git
+setopt PROMPT_SUBST
+
+PROMPT='%(?:%F{green}➜ :%F{red}➜ )%F{cyan}%c%f ${vcs_info_msg_0_}'
+
+# -----------------------------------------------------------------------------
+# 4. VI-MODE (inline, no plugin)
+# -----------------------------------------------------------------------------
+bindkey -v
+export KEYTIMEOUT=1
+
+# Change cursor shape for different vi modes
+function zle-keymap-select {
+  if [[ ${KEYMAP} == vicmd ]] || [[ $1 = 'block' ]]; then
+    echo -ne '\e[2 q'  # Block cursor
+  elif [[ ${KEYMAP} == main ]] || [[ ${KEYMAP} == viins ]] || [[ $1 = 'beam' ]]; then
+    echo -ne '\e[6 q'  # Beam cursor
+  fi
+}
+zle -N zle-keymap-select
+
+function zle-line-init {
+  echo -ne '\e[6 q'  # Start with beam cursor
+}
+zle -N zle-line-init
+
+# Better searching in vi mode
+bindkey '^R' history-incremental-search-backward
+bindkey '^P' up-line-or-history
+bindkey '^N' down-line-or-history
+bindkey '^A' beginning-of-line
+bindkey '^E' end-of-line
+bindkey '^W' backward-kill-word
+
+# -----------------------------------------------------------------------------
+# 5. ZSH-AUTOSUGGESTIONS (direct source, fast)
+# -----------------------------------------------------------------------------
+if [[ -f ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+  source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+elif [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+bindkey '^F' autosuggest-accept
+
+# -----------------------------------------------------------------------------
+# 6. HISTORY
+# -----------------------------------------------------------------------------
+HISTSIZE=50000
+SAVEHIST=50000
+HISTFILE=~/.zsh_history
+setopt EXTENDED_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_VERIFY
+setopt SHARE_HISTORY
+setopt INC_APPEND_HISTORY
+
+# -----------------------------------------------------------------------------
+# 7. ENVIRONMENT VARIABLES
+# -----------------------------------------------------------------------------
+export EDITOR="nvim"
+export TERM=xterm-256color
+export PLUGIN_CLI_DISABLE_AUTOUPDATE=true
+export NODE_EXTRA_CA_CERTS="$HOME/.netskope-ca.pem"
+export DOCKER_HOST='unix:///var/folders/l0/36pgyb955t9chktq17gz9rf80000gn/T/podman/podman-machine-default-api.sock'
+
+# Brew (cached)
+export HOMEBREW_PREFIX="/opt/homebrew"
+export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
+export HOMEBREW_REPOSITORY="/opt/homebrew"
+export MANPATH="/opt/homebrew/share/man${MANPATH+:$MANPATH}:"
+export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
+
+# -----------------------------------------------------------------------------
+# 8. LAZY-LOADED TOOLS
+# -----------------------------------------------------------------------------
+
+# kubectl
+if (( $+commands[kubectl] )); then
+  function kubectl() {
+    unfunction kubectl
+    source <(command kubectl completion zsh)
+    command kubectl "$@"
+  }
+fi
+
+# pyenv
+function pyenvstuff() {
+  eval "$(pyenv init --path)"
+  eval "$(pyenv init -)"
+  eval "$(pyenv virtualenv-init -)"
+}
+
+# cargo/rust
+function cargo() {
+  unfunction cargo rustc rustup 2>/dev/null
+  source "$HOME/.cargo/env"
+  command cargo "$@"
+}
+function rustc() {
+  unfunction cargo rustc rustup 2>/dev/null
+  source "$HOME/.cargo/env"
+  command rustc "$@"
+}
+function rustup() {
+  unfunction cargo rustc rustup 2>/dev/null
+  source "$HOME/.cargo/env"
+  command rustup "$@"
+}
+
+# bun
+function bun() {
+  unfunction bun bunx 2>/dev/null
+  [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+  command bun "$@"
+}
+function bunx() {
+  unfunction bun bunx 2>/dev/null
+  [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+  command bunx "$@"
+}
+
+# -----------------------------------------------------------------------------
+# 9. FNM (fast node manager)
+# -----------------------------------------------------------------------------
+eval "$(fnm env --use-on-cd)"
+
+# -----------------------------------------------------------------------------
+# 10. FZF
+# -----------------------------------------------------------------------------
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+if command -v fd &> /dev/null; then
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+fi
+
+# -----------------------------------------------------------------------------
+# 11. ZOXIDE (optional, smarter cd)
+# -----------------------------------------------------------------------------
+if command -v zoxide &> /dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# -----------------------------------------------------------------------------
+# 12. CUSTOM FUNCTIONS
+# -----------------------------------------------------------------------------
+function chpwd() { emulate -L zsh; ls -ltr }
+function cdl() { cd $(dirname $(readlink "$1")) }
+function f() { find . -iname "*$1*" ${@:2} }
+function r() { grep "$1" ${@:2} -R . }
+function mkcd() { mkdir -p "$@" && cd "$_" }
+function commands() { awk '{a[$4]++}END{for(i in a){print a[i] " " i}}' }
+function ask() { opencode run "$*" }
+
+# -----------------------------------------------------------------------------
+# 13. ALIASES
+# -----------------------------------------------------------------------------
+alias zshconfig="$EDITOR ~/.zshrc"
+alias nvimconfig='cd ~/.config/nvim && nvim .'
+alias sshconfig="$EDITOR ~/.ssh/config"
+alias topten="history | commands | sort -rn | head"
+alias c="clear"
+alias ripgrep="rg"
+alias atm=appf-webtools-mgr
+alias vim="nvim"
+alias k=kubectl
+alias axbrew='arch -x86_64 /usr/local/homebrew/bin/brew'
+alias ls='ls --color=auto'
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias grep='grep --color=auto'
+
+# -----------------------------------------------------------------------------
+# 14. EXTERNAL SOURCES
+# -----------------------------------------------------------------------------
+source ~/mac-dev-setup/profile/intuit.sh
