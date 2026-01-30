@@ -9,17 +9,40 @@
 # -----------------------------------------------------------------------------
 typeset -U PATH  # Ensure unique entries only
 
+# User-local paths (cross-platform)
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.opencode/bin:$PATH"
 export PATH="$HOME/.emacs.d/bin:$PATH"
 export PATH="$HOME/.bun/bin:$PATH"
 export PATH="$HOME/.codeium/windsurf/bin:$PATH"
 export PATH="$HOME/go/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="/opt/homebrew/sbin:$PATH"
-export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
-export PATH="/opt/homebrew/opt/gnupg@2.2/bin:$PATH"
-export PATH="/usr/local/bin:$PATH"
+
+# Platform-specific package manager paths
+if [[ "$OSTYPE" == darwin* ]]; then
+  # macOS: Homebrew (Apple Silicon or Intel)
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+    _brew_prefix="/opt/homebrew"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+    _brew_prefix="/usr/local"
+  fi
+  # Homebrew-installed tools (avoid slow `brew --prefix` call)
+  if [[ -n "$_brew_prefix" ]]; then
+    [[ -d "$_brew_prefix/opt/postgresql@16/bin" ]] && export PATH="$_brew_prefix/opt/postgresql@16/bin:$PATH"
+    [[ -d "$_brew_prefix/opt/gnupg@2.2/bin" ]] && export PATH="$_brew_prefix/opt/gnupg@2.2/bin:$PATH"
+    unset _brew_prefix
+  fi
+elif [[ "$OSTYPE" == linux* ]]; then
+  # Linux: Linuxbrew (if installed)
+  if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+    eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+  fi
+  # Common Linux paths
+  [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
+fi
 
 # -----------------------------------------------------------------------------
 # 2. COMPLETION SYSTEM
@@ -107,15 +130,21 @@ setopt INC_APPEND_HISTORY
 export EDITOR="nvim"
 export TERM=xterm-256color
 export PLUGIN_CLI_DISABLE_AUTOUPDATE=true
-export NODE_EXTRA_CA_CERTS="$HOME/.netskope-ca.pem"
-export DOCKER_HOST='unix:///var/folders/l0/36pgyb955t9chktq17gz9rf80000gn/T/podman/podman-machine-default-api.sock'
+[[ -f "$HOME/.netskope-ca.pem" ]] && export NODE_EXTRA_CA_CERTS="$HOME/.netskope-ca.pem"
 
-# Brew (cached)
-export HOMEBREW_PREFIX="/opt/homebrew"
-export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
-export HOMEBREW_REPOSITORY="/opt/homebrew"
-export MANPATH="/opt/homebrew/share/man${MANPATH+:$MANPATH}:"
-export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
+# Podman/Docker (detect socket dynamically)
+if [[ -z "$DOCKER_HOST" ]]; then
+  local podman_sock="${XDG_RUNTIME_DIR:-/tmp}/podman/podman.sock"
+  local podman_machine_sock="$HOME/.local/share/containers/podman/machine/podman.sock"
+  if [[ -S "$podman_sock" ]]; then
+    export DOCKER_HOST="unix://$podman_sock"
+  elif [[ -S "$podman_machine_sock" ]]; then
+    export DOCKER_HOST="unix://$podman_machine_sock"
+  fi
+fi
+
+# Note: HOMEBREW_PREFIX, HOMEBREW_CELLAR, MANPATH, INFOPATH are set by
+# `brew shellenv` in the PATH section above (macOS/Linuxbrew)
 
 # -----------------------------------------------------------------------------
 # 8. LAZY-LOADED TOOLS
@@ -221,6 +250,6 @@ alias ...='cd ../..'
 alias grep='grep --color=auto'
 
 # -----------------------------------------------------------------------------
-# 14. EXTERNAL SOURCES
+# 14. EXTERNAL SOURCES (machine-specific, optional)
 # -----------------------------------------------------------------------------
-source ~/mac-dev-setup/profile/intuit.sh
+[[ -f ~/mac-dev-setup/profile/intuit.sh ]] && source ~/mac-dev-setup/profile/intuit.sh
