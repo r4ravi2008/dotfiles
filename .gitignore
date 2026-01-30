@@ -4,6 +4,13 @@
 *.swo
 *~
 
+# Backup files
+*.bk
+*.bak
+*.bkup
+*.backup
+*.orig
+
 # Neovim
 nvim/lazy-lock.json
 nvim/.luarc.json
