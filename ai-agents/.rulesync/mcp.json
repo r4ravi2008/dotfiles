@@ -1,23 +1,5 @@
 {
   "mcpServers": {
-    "serena": {
-      "description": "Semantic coding tools for codebase exploration and manipulation",
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server",
-        "--context",
-        "ide-assistant",
-        "--enable-web-dashboard",
-        "false",
-        "--project",
-        "."
-      ],
-      "env": {}
-    },
     "context7": {
       "description": "Up-to-date documentation and code examples for libraries",
       "type": "stdio",

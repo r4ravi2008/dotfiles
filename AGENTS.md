@@ -17,7 +17,6 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, and AI agent 
 ├── tmux/
 │   └── tmux.conf.local # Local tmux customizations (gpakosz/.tmux framework)
 ├── opencode/           # OpenCode application configuration
-│   ├── config.json     # Model, providers, agent settings
 │   ├── ocx.jsonc       # OCX registry settings
 │   ├── package.json    # Plugin dependencies
 │   ├── command/        # Slash commands (*.md)
@@ -58,9 +57,19 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, and AI agent 
 
 ### AI Agents (OpenCode, Cursor, etc.)
 - Unified rules via rulesync → generates AGENTS.md
-- OpenCode config: model settings, MCP servers, plugins
+- OpenCode MCP config: generated at `ai-agents/opencode.json` (symlinked to `~/.config/opencode/opencode.json`)
 - Shared commands and subagents across all AI coding tools
 - Symlinked to `~/AGENTS.md` for global use
+
+#### Rulesync (Source of Truth)
+
+For AI agents, treat rulesync as the source of truth for rules, commands, subagents/agents, MCP servers, and any tool-specific manifests (including hooks/config where applicable).
+
+- Make changes in `ai-agents/.rulesync/` (for example `ai-agents/.rulesync/mcp.json` for MCP servers)
+- Do not hand-edit generated outputs (for example `ai-agents/opencode.json`, `ai-agents/AGENTS.md`, or tool-specific config files created from generation)
+- Legacy note: older setups used `opencode/config.json` / `~/.config/opencode/config.json`; MCP is now managed via rulesync and generated into `ai-agents/opencode.json`
+- Regenerate manifests after edits: `cd ~/.dotfiles/ai-agents && npx rulesync generate`
+- Mental model: edit rulesync inputs → sync/generate → rulesync writes the per-tool config files for each managed tool
 
 ## Bootstrap Process
 

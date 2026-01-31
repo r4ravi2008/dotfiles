@@ -110,13 +110,26 @@ setup_ai_agents() {
 	mkdir -p "$HOME/.config/opencode"
 	mkdir -p "$HOME/.cursor"
 
+	# OpenCode legacy cleanup: older versions of this dotfiles repo created a
+	# ~/.config/opencode/config.json symlink, but OpenCode's canonical global
+	# config is ~/.config/opencode/opencode.json.
+	if [[ -L "$HOME/.config/opencode/config.json" && "$(readlink "$HOME/.config/opencode/config.json")" == "$DOTFILES_DIR/opencode/config.json" ]]; then
+		rm -f "$HOME/.config/opencode/config.json"
+		log_info "Removed legacy OpenCode config.json symlink"
+	fi
+
 	# OpenCode configuration
-	create_symlink "$DOTFILES_DIR/opencode/config.json" "$HOME/.config/opencode/config.json"
 	# OpenCode global config (includes MCP). Prefer rulesync-generated config when present.
 	if [[ -f "$DOTFILES_DIR/ai-agents/opencode.json" ]]; then
-		create_symlink "$DOTFILES_DIR/ai-agents/opencode.json" "$HOME/.config/opencode/opencode.json"
+		# Respect existing user config if it's not already managed by this repo.
+		if [[ -e "$HOME/.config/opencode/opencode.json" && ! -L "$HOME/.config/opencode/opencode.json" ]]; then
+			log_warn "OpenCode config exists at ~/.config/opencode/opencode.json; skipping symlink (to avoid overwriting your local config)."
+			log_warn "If you want rulesync-managed MCP in OpenCode, replace it with a symlink to ~/.dotfiles/ai-agents/opencode.json."
+		else
+			create_symlink "$DOTFILES_DIR/ai-agents/opencode.json" "$HOME/.config/opencode/opencode.json"
+		fi
 	else
-		log_warn "OpenCode config (ai-agents/opencode.json) not found. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' to generate it."
+		log_warn "OpenCode MCP config not generated yet. Run 'cd ~/.dotfiles/ai-agents && npx rulesync generate' to create ai-agents/opencode.json."
 	fi
 	create_symlink "$DOTFILES_DIR/opencode/ocx.jsonc" "$HOME/.config/opencode/ocx.jsonc"
 	create_symlink "$DOTFILES_DIR/opencode/package.json" "$HOME/.config/opencode/package.json"
