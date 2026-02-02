@@ -1,21 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
-  "targets": [
-    "agentsmd",
-    "opencode",
-    "codexcli"
-  ],
-  "features": [
-    "rules",
-    "ignore",
-    "mcp",
-    "commands",
-    "subagents",
-    "skills"
-  ],
-  "baseDirs": [
-    "."
-  ],
+  "targets": ["agentsmd", "opencode", "codexcli", "cursor"],
+  "features": ["rules", "ignore", "mcp", "commands", "subagents", "skills"],
+  "baseDirs": ["."],
   "delete": true,
   "verbose": false,
   "silent": false,
@@ -23,5 +10,5 @@
   "simulateCommands": true,
   "simulateSubagents": true,
   "simulateSkills": false,
-  "modularMcp": false
+  "modularMcp": false,
 }

@@ -1,2 +1,8 @@
 # uv
 export PATH="$HOME/.local/bin:$PATH"
+
+# Machine-local secrets/env (not tracked)
+# Keep this lightweight (plain exports only) to avoid slowing shell startup.
+if [[ -o interactive ]]; then
+  [[ -r "$HOME/.config/secrets/env.zsh" ]] && source "$HOME/.config/secrets/env.zsh"
+fi

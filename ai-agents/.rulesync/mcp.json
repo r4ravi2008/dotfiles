@@ -3,9 +3,9 @@
     "context7": {
       "description": "Up-to-date documentation and code examples for libraries",
       "type": "stdio",
-      "command": "npx",
+      "command": "bunx",
       "args": [
-        "-y",
+        "--bun",
         "@upstash/context7-mcp"
       ],
       "env": {}
@@ -13,12 +13,34 @@
     "playwright": {
       "description": "Browser automation via Playwright (accessibility-tree driven)",
       "type": "stdio",
-      "command": "npx",
+      "command": "bunx",
       "args": [
-        "-y",
+        "--bun",
         "@playwright/mcp@latest"
       ],
       "env": {}
+    },
+    "pdf-reader": {
+      "description": "Extract and read PDF content",
+      "type": "stdio",
+      "command": "bunx",
+      "args": [
+        "--bun",
+        "@sylphx/pdf-reader-mcp"
+      ],
+      "env": {}
+    },
+    "MiniMax": {
+      "description": "MiniMax coding plan MCP (expects MINIMAX_API_KEY from your environment)",
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "minimax-coding-plan-mcp",
+        "-y"
+      ],
+      "env": {
+        "MINIMAX_API_HOST": "https://api.minimax.io"
+      }
     }
   }
 }
