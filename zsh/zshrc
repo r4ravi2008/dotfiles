@@ -18,6 +18,7 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.opencode/bin:$PATH"
 export PATH="$HOME/.emacs.d/bin:$PATH"
 export PATH="$HOME/.bun/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.codeium/windsurf/bin:$PATH"
 export PATH="$HOME/go/bin:$PATH"
 
@@ -61,13 +62,14 @@ fi
 # -----------------------------------------------------------------------------
 # 2. COMPLETION SYSTEM
 # -----------------------------------------------------------------------------
-if [[ -t 0 && -t 1 ]]; then
+if [[ -o interactive ]]; then
   fpath+=${ZDOTDIR:-~}/.zsh_functions
   fpath+=~/.zfunc
 
   autoload -Uz compinit
   ZSH_COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-${ZSH_VERSION}"
   [[ -d "${ZSH_COMPDUMP:h}" ]] || mkdir -p "${ZSH_COMPDUMP:h}" 2>/dev/null
+
   if ! compinit -C -d "$ZSH_COMPDUMP"; then
     # Cache can go stale (e.g. vendor completions added/removed); rebuild once.
     command rm -f -- "$ZSH_COMPDUMP" "$ZSH_COMPDUMP.zwc" 2>/dev/null
@@ -86,7 +88,6 @@ fi
 # -----------------------------------------------------------------------------
 # 3. PROMPT (robbyrussell-style, inline)
 # -----------------------------------------------------------------------------
-autoload -Uz colors && colors
 autoload -Uz vcs_info
 precmd() { vcs_info }
 zstyle ':vcs_info:git:*' formats '%F{blue}git:(%F{red}%b%F{blue})%f '
@@ -135,7 +136,8 @@ if [[ -t 0 && -t 1 ]]; then
   elif [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
   fi
-  ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+  # NOTE: the "completion" strategy binds Tab and can break normal completion.
+  ZSH_AUTOSUGGEST_STRATEGY=(history)
   bindkey '^F' autosuggest-accept
 fi
 
@@ -255,8 +257,14 @@ fi
 # -----------------------------------------------------------------------------
 # 11. ZOXIDE (optional, smarter cd)
 # -----------------------------------------------------------------------------
-if [[ -t 0 && -t 1 ]] && (( $+commands[zoxide] )); then
-  eval "$(zoxide init zsh)"
+if [[ -o interactive ]] && (( $+commands[zoxide] )); then
+  # Lazy-load zoxide to keep startup fast.
+  function __zoxide_init() {
+    unfunction __zoxide_init z zi 2>/dev/null
+    eval "$(zoxide init zsh)"
+  }
+  function z() { __zoxide_init; z "$@"; }
+  function zi() { __zoxide_init; zi "$@"; }
 fi
 
 # -----------------------------------------------------------------------------
@@ -302,3 +310,11 @@ if [[ -n "${ZSH_PROFILE_STARTUP-}" ]]; then
 fi
 
 true
+
+# pnpm
+export PNPM_HOME="/home/r4ravi2008/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
