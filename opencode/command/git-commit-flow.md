@@ -1,1 +1,0 @@
-Analyze all files in the current repo: staged and unstaged. Identify which files are artifacts and should not be committed. Then group logical changes into features and commit them as separate commits.
