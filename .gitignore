@@ -25,7 +25,7 @@ ai-agents/AGENTS.md
 ai-agents/.agents/
 ai-agents/.opencode/
 ai-agents/.codex/
-ai-agents/opencode.json
+# ai-agents/opencode.json  # Now tracked - contains provider config
 ai-agents/.aiignore
 ai-agents/.cursor/
 ai-agents/.github/
