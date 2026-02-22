@@ -1,11 +1,29 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-5.3-codex",
+
   "provider": {
+    "openai": {
+      "models": {
+        "gpt-5.3-codex": {
+          "limit": {
+            "context": 250000,
+            "output": 65536
+          }
+        },
+        "gpt-5.2": {
+          "limit": {
+            "context": 250000,
+            "output": 65536
+          }
+        }
+      }
+    },
     "github-copilot": {
       "models": {
-        "claude-sonnet-4": {
+        "gpt-5.2": {
           "limit": {
-            "context": 200000,
+            "context": 250000,
             "output": 65536
           }
         },
@@ -13,30 +31,6 @@
           "limit": {
             "context": 200000,
             "output": 32768
-          }
-        },
-        "gpt-4o": {
-          "limit": {
-            "context": 128000,
-            "output": 16384
-          }
-        },
-        "gpt-4.1": {
-          "limit": {
-            "context": 1047576,
-            "output": 32768
-          }
-        },
-        "o3-mini": {
-          "limit": {
-            "context": 200000,
-            "output": 100000
-          }
-        },
-        "gemini-2.0-flash": {
-          "limit": {
-            "context": 1048576,
-            "output": 8192
           }
         }
       }
