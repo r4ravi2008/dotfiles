@@ -207,6 +207,11 @@ setup_ai_agents() {
 		log_warn "rulesync Cursor outputs not found at ai-agents/.cursor; run 'cd ~/.dotfiles/ai-agents && npx rulesync generate'"
 	fi
 
+	# Sync skills to ~/.agents/skills for OpenCode and other AI tools
+	if [[ -d "$DOTFILES_DIR/ai-agents/.cursor/skills" ]]; then
+		sync_dir_contents "$DOTFILES_DIR/ai-agents/.cursor/skills" "$HOME/.agents/skills" "OpenCode skills"
+	fi
+
 	# Install OpenCode plugin dependencies
 	if [[ -f "$DOTFILES_DIR/opencode/package.json" ]]; then
 		log_info "Installing OpenCode plugin dependencies..."
