@@ -1,6 +1,6 @@
 # Dotfiles Agent Instructions
 
-This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, and AI agent configurations.
+This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazygit, and AI agent configurations.
 
 ## Repository Structure
 
@@ -16,6 +16,10 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, and AI agent 
 │   └── zshenv          # Environment variables loaded before zshrc
 ├── tmux/
 │   └── tmux.conf.local # Local tmux customizations (gpakosz/.tmux framework)
+├── ghostty/
+│   └── config          # Ghostty terminal configuration
+├── lazygit/
+│   └── config.yml      # Lazygit configuration
 ├── opencode/           # OpenCode application configuration
 │   ├── ocx.jsonc       # OCX registry settings
 │   ├── package.json    # Plugin dependencies
@@ -55,6 +59,16 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, and AI agent 
 - Based on gpakosz/.tmux framework
 - Custom local configuration
 
+### Ghostty
+- Ghostty terminal emulator configuration
+- TokyoNight theme with custom background
+- Symlinked to `~/.config/ghostty/config`
+
+### Lazygit
+- Custom GUI settings (side panel width, expanded focus)
+- Tmux-compatible keybindings (Ctrl+l/j/k disabled to pass through to tmux)
+- Config symlinked to `~/Library/Application Support/lazygit/config.yml`
+
 ### AI Agents (OpenCode, Cursor, Windsurf, etc.)
 - Unified rules via rulesync → generates AGENTS.md
 - Supported tools: OpenCode, Cursor, Windsurf, Codex CLI
@@ -79,8 +93,10 @@ The `bootstrap.sh` script:
 1. Creates symlinks from home directory to dotfiles
 2. Installs gpakosz/.tmux if not present
 3. Installs oh-my-zsh plugins (zsh-autosuggestions, zsh-syntax-highlighting)
-4. Sets up AI agent configurations (OpenCode, AGENTS.md)
-5. Backs up existing configs before overwriting
+4. Installs CLI tools (zoxide, fzf, fd, ripgrep, lazygit) via Homebrew or fallback
+5. Symlinks Ghostty and lazygit configurations
+6. Sets up AI agent configurations (OpenCode, AGENTS.md)
+7. Backs up existing configs before overwriting
 
 ## Development Guidelines
 
@@ -103,4 +119,5 @@ When modifying these dotfiles:
 - fzf, fd, ripgrep (optional but recommended)
 - fnm (Fast Node Manager)
 - zoxide (optional)
+- lazygit (optional)
 - Node.js (for rulesync and OpenCode plugins)
