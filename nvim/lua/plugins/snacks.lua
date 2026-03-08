@@ -104,6 +104,7 @@ return {
           if win_config.relative ~= "" then
             local keymap_opts = { buffer = buf, silent = true }
             
+            -- Use Ctrl+hjkl to navigate to tmux panes from floating terminals
             vim.keymap.set("t", "<C-h>", function() tmux_navigate("h") end, keymap_opts)
             vim.keymap.set("t", "<C-j>", function() tmux_navigate("j") end, keymap_opts)
             vim.keymap.set("t", "<C-k>", function() tmux_navigate("k") end, keymap_opts)

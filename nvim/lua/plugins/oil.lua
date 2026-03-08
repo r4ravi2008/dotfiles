@@ -14,7 +14,7 @@ return {
     },
   },
 
-  -- Make Oil leave <C-hjkl> alone so tmux navigator can work
+  -- Make Oil leave <C-hjkl> alone so smart-splits can work
   opts = {
     keymaps = {
       ["<C-h>"] = false,

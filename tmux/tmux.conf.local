@@ -447,11 +447,23 @@ tmux_conf_uninstall_plugins_on_reload=true
 # /!\ the 'set -g @tpm_plugins' syntax is not supported
 # to enable a plugin, use the 'set -g @plugin' syntax:
 # visit https://github.com/tmux-plugins for available plugins
-#set -g @plugin 'tmux-plugins/tmux-copycat'
-#set -g @plugin 'tmux-plugins/tmux-cpu'
-#set -g @plugin 'tmux-plugins/tmux-resurrect'
-#set -g @plugin 'tmux-plugins/tmux-continuum'
-#set -g @continuum-restore 'on'
+set -g @plugin 'tmux-plugins/tmux-copycat'
+set -g @plugin 'tmux-plugins/tmux-cpu'
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @plugin 'tmux-plugins/tmux-continuum'
+set -g @continuum-restore 'on'
+
+set -g @plugin 'jabirali/tmux-tilish'
+set -g @tilish-default 'main-vertical'
+set -g @tilish-smartsplits 'on'
+
+# Root-level C-hjkl resize with @pane-is-vim awareness
+# Matches smart-splits.nvim in Neovim: C-hjkl = resize, Alt+hjkl = navigate
+# #!important ensures these load AFTER tpm plugins (tilish, gpakosz, etc.)
+bind-key -n C-h if-shell -F "#{@pane-is-vim}" "send-keys C-h" "resize-pane -L 3" #!important
+bind-key -n C-j if-shell -F "#{@pane-is-vim}" "send-keys C-j" "resize-pane -D 3" #!important
+bind-key -n C-k if-shell -F "#{@pane-is-vim}" "send-keys C-k" "resize-pane -U 3" #!important
+bind-key -n C-l if-shell -F "#{@pane-is-vim}" "send-keys C-l" "resize-pane -R 3" #!important
 
 
 # -- custom variables ----------------------------------------------------------
