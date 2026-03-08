@@ -260,6 +260,9 @@ setup_ai_agents() {
 			log_info "Generating rulesync outputs (OpenCode/Cursor/etc.)..."
 			if (cd "$DOTFILES_DIR/ai-agents" && npx rulesync generate); then
 				log_success "Generated rulesync outputs"
+				# OpenCode discovers skills from ~/.agents/skills/ (synced by bootstrap below),
+				# so remove the redundant rulesync-generated copy to avoid confusion.
+				rm -rf "$DOTFILES_DIR/ai-agents/.opencode/skill"
 			else
 				log_warn "rulesync generate failed; some agent configs may be stale"
 			fi
@@ -330,9 +333,9 @@ setup_ai_agents() {
 		log_warn "rulesync Cursor outputs not found at ai-agents/.cursor; run 'cd ~/.dotfiles/ai-agents && npx rulesync generate'"
 	fi
 
-	# Sync ~/.agents directory (lock file + all skills in one place)
-	if [[ -d "$DOTFILES_DIR/agents" ]]; then
-		sync_dir_contents "$DOTFILES_DIR/agents" "$HOME/.agents" "agents config (~/.agents)"
+	# Sync skills to ~/.agents/skills (single source of truth: ai-agents/.rulesync/skills)
+	if [[ -d "$DOTFILES_DIR/ai-agents/.rulesync/skills" ]]; then
+		sync_dir_contents "$DOTFILES_DIR/ai-agents/.rulesync/skills" "$HOME/.agents/skills" "agent skills (~/.agents/skills)"
 	fi
 
 	# Install OpenCode plugin dependencies (skip if node_modules is up-to-date)
