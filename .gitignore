@@ -35,3 +35,6 @@ opencode/node_modules/
 opencode/package-lock.json
 opencode/bun.lock
 opencode/.opencode/
+
+# Rust build artifacts
+tmux/pane-minimap-rs/target/
