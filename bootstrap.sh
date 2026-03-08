@@ -7,7 +7,8 @@
 set -e
 
 DOTFILES_DIR="$HOME/.dotfiles"
-BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
+# Lazy backup dir: only computed/created when actually needed (see backup_if_exists)
+BACKUP_DIR=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -27,6 +28,9 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 backup_if_exists() {
 	local target="$1"
 	if [[ -e "$target" || -L "$target" ]]; then
+		if [[ -z "$BACKUP_DIR" ]]; then
+			BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
+		fi
 		mkdir -p "$BACKUP_DIR"
 		mv "$target" "$BACKUP_DIR/"
 		log_warn "Backed up existing $(basename "$target") to $BACKUP_DIR/"
@@ -75,8 +79,11 @@ install_zsh_plugins() {
 	# Ensure oh-my-zsh is installed (for plugin directory structure)
 	if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
 		log_info "Installing oh-my-zsh..."
-		sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+		# KEEP_ZSHRC=yes prevents the installer from clobbering our symlinked .zshrc
+		KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 		log_success "Installed oh-my-zsh"
+	else
+		log_info "oh-my-zsh already installed"
 	fi
 
 	mkdir -p "$ZSH_CUSTOM/plugins"
@@ -97,6 +104,63 @@ install_zsh_plugins() {
 		log_success "Installed zsh-syntax-highlighting"
 	else
 		log_info "zsh-syntax-highlighting already installed"
+	fi
+}
+
+# -----------------------------------------------------------------------------
+# Install CLI tools (zoxide, fzf, fd, ripgrep, etc.)
+# -----------------------------------------------------------------------------
+install_cli_tools() {
+	local tools=(zoxide fzf fd rg)
+	local brew_names=(zoxide fzf fd ripgrep)
+	local missing=()
+	local missing_brew=()
+
+	for i in "${!tools[@]}"; do
+		if ! command -v "${tools[$i]}" >/dev/null 2>&1; then
+			missing+=("${tools[$i]}")
+			missing_brew+=("${brew_names[$i]}")
+		else
+			log_info "${tools[$i]} already installed"
+		fi
+	done
+
+	if [[ ${#missing[@]} -eq 0 ]]; then
+		log_success "All CLI tools already installed"
+		return
+	fi
+
+	log_info "Missing CLI tools: ${missing[*]}"
+
+	if command -v brew >/dev/null 2>&1; then
+		log_info "Installing missing tools via Homebrew: ${missing_brew[*]}"
+		brew install "${missing_brew[@]}"
+		log_success "Installed CLI tools via Homebrew"
+	else
+		# Fallback: install individually via official methods
+		for tool in "${missing[@]}"; do
+			case "$tool" in
+			zoxide)
+				log_info "Installing zoxide via curl..."
+				curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+				log_success "Installed zoxide"
+				;;
+			fzf)
+				if [[ -d "$HOME/.fzf" ]]; then
+					log_info "fzf directory exists, updating..."
+					git -C "$HOME/.fzf" pull --ff-only 2>/dev/null || true
+				else
+					log_info "Installing fzf via git..."
+					git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf"
+				fi
+				"$HOME/.fzf/install" --key-bindings --completion --no-update-rc --no-bash --no-fish
+				log_success "Installed fzf"
+				;;
+			*)
+				log_warn "$tool not installed. Install manually (e.g. via your package manager)."
+				;;
+			esac
+		done
 	fi
 }
 
@@ -212,10 +276,15 @@ setup_ai_agents() {
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.opencode/skill" "$HOME/.agents/skills" "OpenCode skills (~/.agents/skills)"
 	fi
 
-	# Install OpenCode plugin dependencies
+	# Install OpenCode plugin dependencies (skip if node_modules is up-to-date)
 	if [[ -f "$DOTFILES_DIR/opencode/package.json" ]]; then
-		log_info "Installing OpenCode plugin dependencies..."
-		(cd "$HOME/.config/opencode" && npm install --silent 2>/dev/null) || log_warn "npm install failed, continuing..."
+		local oc_dir="$HOME/.config/opencode"
+		if [[ ! -d "$oc_dir/node_modules" || "$oc_dir/package.json" -nt "$oc_dir/node_modules" ]]; then
+			log_info "Installing OpenCode plugin dependencies..."
+			(cd "$oc_dir" && npm install --silent 2>/dev/null) || log_warn "npm install failed, continuing..."
+		else
+			log_info "OpenCode plugin dependencies already up-to-date"
+		fi
 	fi
 
 	log_success "AI agent configurations set up"
@@ -254,6 +323,10 @@ main() {
 	# Install zsh plugins
 	log_info "Setting up Zsh plugins..."
 	install_zsh_plugins
+
+	# Install CLI tools (zoxide, fzf, fd, ripgrep)
+	log_info "Installing CLI tools..."
+	install_cli_tools
 
 	# AI Agents configuration (OpenCode, Cursor, etc.)
 	log_info "Setting up AI Agents configuration..."
