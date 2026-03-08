@@ -13,15 +13,40 @@ vim.keymap.del({ "n", "i", "v" }, "<A-k>")
 -- smart-splits.nvim keymaps (set here in VeryLazy so they load AFTER LazyVim defaults)
 local ss = require("smart-splits")
 
-local function tmux_zoomed_move(dir, fallback)
+local function has_split_in_direction(vim_dir)
+  return vim.fn.winnr(vim_dir) ~= vim.fn.winnr()
+end
+
+local function tmux_is_zoomed()
+  if not (vim.env.TMUX and vim.env.TMUX_PANE) then
+    return false
+  end
+
+  local zoomed = vim.trim(vim.fn.system({ "tmux", "display-message", "-p", "-t", vim.env.TMUX_PANE, "#{window_zoomed_flag}" }))
+  return vim.v.shell_error == 0 and zoomed == "1"
+end
+
+local function tmux_select_pane_preserve_zoom(tmux_dir)
+  if not vim.env.TMUX then
+    return false
+  end
+
+  if vim.env.TMUX_PANE then
+    vim.fn.system({ "tmux", "select-pane", "-t", vim.env.TMUX_PANE, "-" .. tmux_dir, "-Z" })
+    if vim.v.shell_error == 0 then
+      return true
+    end
+  end
+
+  vim.fn.system({ "tmux", "select-pane", "-" .. tmux_dir, "-Z" })
+  return vim.v.shell_error == 0
+end
+
+local function tmux_zoomed_move(tmux_dir, vim_dir, fallback)
   return function()
-    if vim.env.TMUX then
-      local zoomed = vim.trim(vim.fn.system({ "tmux", "display-message", "-p", "#{window_zoomed_flag}" }))
-      if vim.v.shell_error == 0 and zoomed == "1" then
-        vim.fn.system({ "tmux", "select-pane", "-" .. dir, "-Z" })
-        if vim.v.shell_error == 0 then
-          return
-        end
+    if not has_split_in_direction(vim_dir) and tmux_is_zoomed() then
+      if tmux_select_pane_preserve_zoom(tmux_dir) then
+        return
       end
     end
     fallback()
@@ -29,10 +54,10 @@ local function tmux_zoomed_move(dir, fallback)
 end
 
 -- Navigate between splits/panes (matches tilish Alt+hjkl)
-vim.keymap.set({ "n", "t" }, "<A-h>", tmux_zoomed_move("L", ss.move_cursor_left), { desc = "Move to left split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-j>", tmux_zoomed_move("D", ss.move_cursor_down), { desc = "Move to below split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-k>", tmux_zoomed_move("U", ss.move_cursor_up), { desc = "Move to above split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-l>", tmux_zoomed_move("R", ss.move_cursor_right), { desc = "Move to right split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-h>", tmux_zoomed_move("L", "h", ss.move_cursor_left), { desc = "Move to left split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-j>", tmux_zoomed_move("D", "j", ss.move_cursor_down), { desc = "Move to below split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-k>", tmux_zoomed_move("U", "k", ss.move_cursor_up), { desc = "Move to above split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-l>", tmux_zoomed_move("R", "l", ss.move_cursor_right), { desc = "Move to right split/pane" })
 
 -- Resize splits
 vim.keymap.set("n", "<C-h>", ss.resize_left, { desc = "Resize split left" })

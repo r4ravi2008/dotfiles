@@ -6,7 +6,7 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
-const DISPLAY_SECONDS: f64 = 0.02;
+const DISPLAY_SECONDS: f64 = 0.07;
 const PIDFILE: &str = "/tmp/tmux-minimap.pid";
 
 const RESET: &str = "\x1b[0m";

@@ -464,17 +464,17 @@ bind-key -n M-p run-shell 'proj="$HOME/projects"; this="$(fd --type d --hidden -
 # Swap window left/right with Alt+Shift+< / Alt+Shift+>
 bind-key -n M-< swap-window -t -1 \; select-window -t -1 #!important
 bind-key -n M-> swap-window -t +1 \; select-window -t +1 #!important
-# Pane minimap popup — reactive: draw layout for exact window/pane at selection time
+# Pane minimap popup — only shown when the window is zoomed (navigating between zoomed panes).
 # IDs are injected by tmux formats to avoid focus races while popup opens.
-set-hook -g after-select-pane 'run-shell -b "tmux display-popup -E -k -w 52 -h 24 \"~/.dotfiles/tmux/pane-minimap --window-id #{window_id} --active-pane-id #{pane_id}\""'
-# Zoom-aware Alt+hjkl navigation with @pane-is-vim awareness
-# In zoomed windows, bypass Vim handoff and always switch tmux panes with -Z
-# so the target pane remains zoomed.
+set-hook -g after-select-pane 'if-shell -F "#{window_zoomed_flag}" "run-shell -b \"tmux display-popup -E -k -w 52 -h 24 \\\"~/.dotfiles/tmux/pane-minimap --window-id #{window_id} --active-pane-id #{pane_id}\\\"\"" ""'
+# Alt+hjkl navigation with @pane-is-vim awareness
+# Always hand off to Neovim first when in a Vim pane. smart-splits then
+# navigates inside Neovim, and only crosses into tmux at Neovim edges.
 # #!important ensures these load AFTER tpm plugins (tilish, gpakosz, etc.)
-bind-key -n M-h if-shell -F "#{window_zoomed_flag}" "select-pane -L -Z" "if-shell -F '#{@pane-is-vim}' 'send-keys M-h' 'select-pane -L -Z'" #!important
-bind-key -n M-j if-shell -F "#{window_zoomed_flag}" "select-pane -D -Z" "if-shell -F '#{@pane-is-vim}' 'send-keys M-j' 'select-pane -D -Z'" #!important
-bind-key -n M-k if-shell -F "#{window_zoomed_flag}" "select-pane -U -Z" "if-shell -F '#{@pane-is-vim}' 'send-keys M-k' 'select-pane -U -Z'" #!important
-bind-key -n M-l if-shell -F "#{window_zoomed_flag}" "select-pane -R -Z" "if-shell -F '#{@pane-is-vim}' 'send-keys M-l' 'select-pane -R -Z'" #!important
+bind-key -n M-h if-shell -F '#{@pane-is-vim}' 'send-keys M-h' 'select-pane -L -Z' #!important
+bind-key -n M-j if-shell -F '#{@pane-is-vim}' 'send-keys M-j' 'select-pane -D -Z' #!important
+bind-key -n M-k if-shell -F '#{@pane-is-vim}' 'send-keys M-k' 'select-pane -U -Z' #!important
+bind-key -n M-l if-shell -F '#{@pane-is-vim}' 'send-keys M-l' 'select-pane -R -Z' #!important
 
 # Root-level C-hjkl resize with @pane-is-vim awareness
 # Matches smart-splits.nvim in Neovim: C-hjkl = resize, Alt+hjkl = navigate
