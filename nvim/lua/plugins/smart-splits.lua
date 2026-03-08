@@ -9,10 +9,11 @@ return {
   "mrjones2014/smart-splits.nvim",
   lazy = false, -- must not lazy-load; sets @pane-is-vim for tmux integration
   opts = {
-    -- disable navigation when tmux pane is zoomed
-    disable_multiplexer_nav_when_zoomed = true,
-    -- at edge of all neovim splits, move to tmux pane
-    at_edge = "stop",
+    -- allow navigation when tmux pane is zoomed; tmux select-pane -Z
+    -- (set in tmux.conf.local) preserves zoom on the target pane
+    disable_multiplexer_nav_when_zoomed = false,
+    -- at edge of all neovim splits, hand off to tmux pane navigation
+    at_edge = "wrap",
   },
   config = function(_, opts)
     require("smart-splits").setup(opts)
