@@ -55,9 +55,11 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, and AI agent 
 - Based on gpakosz/.tmux framework
 - Custom local configuration
 
-### AI Agents (OpenCode, Cursor, etc.)
+### AI Agents (OpenCode, Cursor, Windsurf, etc.)
 - Unified rules via rulesync → generates AGENTS.md
+- Supported tools: OpenCode, Cursor, Windsurf, Codex CLI
 - OpenCode MCP config: generated at `ai-agents/opencode.json` (symlinked to `~/.config/opencode/opencode.json`)
+- Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
 - Shared commands and subagents across all AI coding tools
 - Symlinked to `~/AGENTS.md` for global use
 

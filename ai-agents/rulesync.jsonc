@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
-  "targets": ["agentsmd", "opencode", "codexcli", "cursor"],
+  "targets": ["agentsmd", "opencode", "codexcli", "cursor", "windsurf"],
   "features": ["rules", "ignore", "mcp", "commands", "subagents", "skills"],
   "baseDirs": ["."],
   "delete": true,
