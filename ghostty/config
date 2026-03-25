@@ -1,2 +1,5 @@
 background = 000000
 theme = tokyonight
+
+# Required for Alt+key bindings (tilish, smart-splits)
+macos-option-as-alt = true
