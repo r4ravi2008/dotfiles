@@ -249,6 +249,7 @@ main() {
 	log_info "Setting up Tmux configuration..."
 	install_tmux_framework
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
+	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux.conf.local"
 
 	# Install zsh plugins
 	log_info "Setting up Zsh plugins..."
