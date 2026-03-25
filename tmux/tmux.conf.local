@@ -466,7 +466,7 @@ bind-key -n M-< swap-window -t -1 \; select-window -t -1 #!important
 bind-key -n M-> swap-window -t +1 \; select-window -t +1 #!important
 # Pane minimap popup — reactive: draw layout for exact window/pane at selection time
 # IDs are injected by tmux formats to avoid focus races while popup opens.
-set-hook -g after-select-pane 'run-shell -b "tmux display-popup -E -k -w 52 -h 24 \"python3 ~/.dotfiles/tmux/pane-minimap.py --window-id #{window_id} --active-pane-id #{pane_id}\""'
+set-hook -g after-select-pane 'run-shell -b "tmux display-popup -E -k -w 52 -h 24 \"~/.dotfiles/tmux/pane-minimap --window-id #{window_id} --active-pane-id #{pane_id}\""'
 # Zoom-aware Alt+hjkl navigation with @pane-is-vim awareness
 # In zoomed windows, bypass Vim handoff and always switch tmux panes with -Z
 # so the target pane remains zoomed.

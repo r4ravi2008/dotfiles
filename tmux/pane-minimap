@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BIN="$HOME/.dotfiles/tmux/pane-minimap-rs/target/release/pane-minimap"
+MANIFEST="$HOME/.dotfiles/tmux/pane-minimap-rs/Cargo.toml"
+SRC="$HOME/.dotfiles/tmux/pane-minimap-rs/src/main.rs"
+
+if [ ! -x "$BIN" ] || [ "$MANIFEST" -nt "$BIN" ] || [ "$SRC" -nt "$BIN" ]; then
+  cargo build --release --manifest-path "$MANIFEST" >/dev/null
+fi
+
+exec "$BIN" "$@"
