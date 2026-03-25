@@ -165,6 +165,85 @@ install_cli_tools() {
 }
 
 # -----------------------------------------------------------------------------
+# Install Rust toolchain
+# -----------------------------------------------------------------------------
+install_rust() {
+	if command -v cargo >/dev/null 2>&1; then
+		log_info "Rust (cargo) already installed"
+		return
+	fi
+
+	if [[ -x "$HOME/.cargo/bin/cargo" ]]; then
+		log_info "Rust is installed at ~/.cargo/bin (not in current PATH yet)"
+		return
+	fi
+
+	if ! command -v curl >/dev/null 2>&1; then
+		log_warn "curl not found. Install Rust manually from https://rustup.rs"
+		return
+	fi
+
+	log_info "Installing Rust via rustup..."
+	if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
+		if [[ -r "$HOME/.cargo/env" ]]; then
+			# shellcheck disable=SC1090
+			source "$HOME/.cargo/env"
+		fi
+		if command -v cargo >/dev/null 2>&1 || [[ -x "$HOME/.cargo/bin/cargo" ]]; then
+			log_success "Installed Rust toolchain"
+		else
+			log_warn "Rust installer completed, but cargo is not available yet in this shell"
+		fi
+	else
+		log_warn "Rust installation failed; continuing bootstrap"
+	fi
+}
+
+# -----------------------------------------------------------------------------
+# Setup tmux pane minimap helper (Rust build + wrapper permissions)
+# -----------------------------------------------------------------------------
+setup_tmux_pane_minimap() {
+	local wrapper="$DOTFILES_DIR/tmux/pane-minimap"
+	local manifest="$DOTFILES_DIR/tmux/pane-minimap-rs/Cargo.toml"
+	local src="$DOTFILES_DIR/tmux/pane-minimap-rs/src/main.rs"
+	local bin="$DOTFILES_DIR/tmux/pane-minimap-rs/target/release/pane-minimap"
+	local cargo_cmd="cargo"
+
+	if [[ ! -f "$wrapper" ]]; then
+		log_warn "tmux/pane-minimap wrapper not found; skipping pane minimap setup"
+		return
+	fi
+
+	chmod +x "$wrapper"
+
+	if command -v cargo >/dev/null 2>&1; then
+		cargo_cmd="cargo"
+	elif [[ -x "$HOME/.cargo/bin/cargo" ]]; then
+		cargo_cmd="$HOME/.cargo/bin/cargo"
+	else
+		log_warn "cargo not found; pane-minimap will use Python fallback"
+		return
+	fi
+
+	if [[ ! -f "$manifest" || ! -f "$src" ]]; then
+		log_warn "pane-minimap Rust sources not found; skipping binary build"
+		return
+	fi
+
+	if [[ -x "$bin" && "$manifest" -ot "$bin" && "$src" -ot "$bin" ]]; then
+		log_info "tmux pane-minimap Rust binary already up-to-date"
+		return
+	fi
+
+	log_info "Building tmux pane-minimap Rust binary..."
+	if "$cargo_cmd" build --release --manifest-path "$manifest" >/dev/null 2>&1; then
+		log_success "Built tmux pane-minimap Rust binary"
+	else
+		log_warn "Failed to build pane-minimap Rust binary; Python fallback will be used"
+	fi
+}
+
+# -----------------------------------------------------------------------------
 # Setup AI Agents (OpenCode, Cursor, etc.)
 # -----------------------------------------------------------------------------
 setup_ai_agents() {
@@ -174,15 +253,7 @@ setup_ai_agents() {
 	mkdir -p "$HOME/.config/opencode"
 	mkdir -p "$HOME/.cursor"
 
-	# OpenCode legacy cleanup: older versions of this dotfiles repo created a
-	# ~/.config/opencode/config.json symlink, but OpenCode's canonical global
-	# config is ~/.config/opencode/opencode.json.
-	if [[ -L "$HOME/.config/opencode/config.json" && "$(readlink "$HOME/.config/opencode/config.json")" == "$DOTFILES_DIR/opencode/config.json" ]]; then
-		rm -f "$HOME/.config/opencode/config.json"
-		log_info "Removed legacy OpenCode config.json symlink"
-	fi
-
-	# Generate rulesync outputs (source of truth lives in ai-agents/.rulesync)
+    # Generate rulesync outputs (source of truth lives in ai-agents/.rulesync)
 	# This keeps Cursor/OpenCode configs and commands in sync even if they already exist locally.
 	if [[ -d "$DOTFILES_DIR/ai-agents/.rulesync" ]]; then
 		if command -v npx >/dev/null 2>&1; then
@@ -325,6 +396,14 @@ main() {
 	# Install CLI tools (zoxide, fzf, fd, ripgrep)
 	log_info "Installing CLI tools..."
 	install_cli_tools
+
+	# Install Rust toolchain
+	log_info "Installing Rust toolchain..."
+	install_rust
+
+	# Build tmux pane minimap helper
+	log_info "Setting up tmux pane minimap..."
+	setup_tmux_pane_minimap
 
 	# AI Agents configuration (OpenCode, Cursor, etc.)
 	log_info "Setting up AI Agents configuration..."
