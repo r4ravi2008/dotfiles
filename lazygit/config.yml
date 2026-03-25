@@ -1,0 +1,11 @@
+gui:
+  sidePanelWidth: 0.2
+  expandFocusedSidePanel: true
+keybinding:
+  universal:
+    # Unbind Ctrl+l so it passes through to tmux for pane navigation
+    openLogMenu: <disabled>
+  commits:
+    # Unbind Ctrl+j/k so they pass through to tmux for pane navigation
+    moveDownCommit: <disabled>
+    moveUpCommit: <disabled>

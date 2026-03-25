@@ -111,8 +111,8 @@ install_zsh_plugins() {
 # Install CLI tools (zoxide, fzf, fd, ripgrep, etc.)
 # -----------------------------------------------------------------------------
 install_cli_tools() {
-	local tools=(zoxide fzf fd rg)
-	local brew_names=(zoxide fzf fd ripgrep)
+	local tools=(zoxide fzf fd rg lazygit)
+	local brew_names=(zoxide fzf fd ripgrep lazygit)
 	local missing=()
 	local missing_brew=()
 
@@ -319,6 +319,16 @@ main() {
 	install_tmux_framework
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux.conf.local"
+
+	# Ghostty config
+	log_info "Setting up Ghostty configuration..."
+	mkdir -p "$HOME/.config/ghostty"
+	create_symlink "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
+
+	# Lazygit config
+	log_info "Setting up Lazygit configuration..."
+	mkdir -p "$HOME/Library/Application Support/lazygit"
+	create_symlink "$DOTFILES_DIR/lazygit/config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
 
 	# Install zsh plugins
 	log_info "Setting up Zsh plugins..."
