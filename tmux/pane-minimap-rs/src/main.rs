@@ -6,6 +6,260 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
+// Nvim window layout structures for drawing sub-dividers
+#[derive(Debug, Clone)]
+enum NvimLayout {
+    Leaf(i32),                          // Window ID
+    Container(String, Vec<NvimLayout>), // "row" or "col", children
+}
+
+#[derive(Debug, Clone)]
+struct NvimWindowLayout {
+    layout: NvimLayout,
+    active_win: i32,
+}
+
+// Parse nvim winlayout JSON format: ["row", [["leaf", 1000], ["col", [["leaf", 1001], ["leaf", 1002]]]]]
+fn parse_nvim_layout(value: &serde_json::Value) -> Option<NvimLayout> {
+    if let Some(arr) = value.as_array() {
+        if arr.len() >= 2 {
+            let first = arr[0].as_str()?;
+            if first == "leaf" {
+                // ["leaf", <winid>]
+                if let Some(winid) = arr[1].as_i64() {
+                    return Some(NvimLayout::Leaf(winid as i32));
+                }
+            } else if first == "row" || first == "col" {
+                // ["row", [...]] or ["col", [...]]
+                if let Some(children_arr) = arr[1].as_array() {
+                    let children: Vec<NvimLayout> =
+                        children_arr.iter().filter_map(parse_nvim_layout).collect();
+                    if !children.is_empty() {
+                        return Some(NvimLayout::Container(first.to_string(), children));
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+// Read nvim layout file for a pane - now includes active window
+// Format: {"layout": ["row", [...]], "active_win": 1000}
+fn read_nvim_layout(pane_id: &str) -> Option<NvimWindowLayout> {
+    let filepath = format!("/tmp/nvim_layout_{}", pane_id.trim_start_matches('%'));
+    let content = fs::read_to_string(&filepath).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&content).ok()?;
+
+    // Try new format first
+    if let Some(layout_val) = json.get("layout") {
+        if let Some(layout) = parse_nvim_layout(layout_val) {
+            let active_win = json.get("active_win")?.as_i64()? as i32;
+            return Some(NvimWindowLayout { layout, active_win });
+        }
+    }
+
+    // Fallback to old format (just layout array)
+    if let Some(layout) = parse_nvim_layout(&json) {
+        return Some(NvimWindowLayout {
+            layout,
+            active_win: 0,
+        });
+    }
+
+    None
+}
+
+// Draw nvim splits as sub-dividers within a pane's box, highlighting active window
+fn draw_nvim_splits(
+    nvim_layout: &NvimWindowLayout,
+    pane_left: i32,
+    pane_top: i32,
+    pane_width: i32,
+    pane_height: i32,
+    min_left: i32,
+    min_top: i32,
+    span_x: i32,
+    span_y: i32,
+    put: &mut impl FnMut(i32, i32, char, Color),
+) {
+    // Recursively calculate positions and draw dividers
+    draw_nvim_splits_recursive(
+        &nvim_layout.layout,
+        pane_left,
+        pane_top,
+        pane_width,
+        pane_height,
+        min_left,
+        min_top,
+        span_x,
+        span_y,
+        0, // current depth
+        nvim_layout.active_win,
+        put,
+    );
+}
+
+fn draw_nvim_splits_recursive(
+    layout: &NvimLayout,
+    left: i32,
+    top: i32,
+    width: i32,
+    height: i32,
+    min_left: i32,
+    min_top: i32,
+    span_x: i32,
+    span_y: i32,
+    depth: i32,
+    active_win: i32,
+    put: &mut impl FnMut(i32, i32, char, Color),
+) -> bool {
+    let sub_color = if depth == 0 {
+        Color::InactiveBorder
+    } else {
+        Color::InactiveText
+    };
+
+    let active_color = Color::ActiveText; // Brighter color for active window border
+
+    match layout {
+        NvimLayout::Leaf(winid) => {
+            // Check if this leaf is the active window
+            let is_active = *winid == active_win;
+
+            // Calculate canvas coordinates for this window
+            let c_left = scaled_start(left, min_left, CANVAS_W, span_x);
+            let c_right = scaled_end(left + width, min_left, CANVAS_W, span_x);
+            let c_top = scaled_start(top, min_top, CANVAS_H, span_y);
+            let c_bottom = scaled_end(top + height, min_top, CANVAS_H, span_y);
+
+            // Keep 1-char margin from pane border
+            let inner_left = (c_left + 1).max(c_left);
+            let inner_right = (c_right - 1).min(c_right);
+            let inner_top = (c_top + 1).max(c_top);
+            let inner_bottom = (c_bottom - 1).min(c_bottom);
+
+            // Only draw if we have space
+            if inner_right > inner_left && inner_bottom > inner_top {
+                let color = if is_active { active_color } else { sub_color };
+
+                // Draw corner indicator for active window
+                if is_active {
+                    put(inner_left, inner_top, '◆', color);
+                    put(inner_right, inner_top, '◆', color);
+                    put(inner_left, inner_bottom, '◆', color);
+                    put(inner_right, inner_bottom, '◆', color);
+                }
+            }
+
+            is_active
+        }
+        NvimLayout::Container(orientation, children) => {
+            let n = children.len() as i32;
+            if n <= 1 {
+                // Single child - recurse with same dimensions
+                if let Some(child) = children.first() {
+                    return draw_nvim_splits_recursive(
+                        child, left, top, width, height, min_left, min_top, span_x, span_y, depth,
+                        active_win, put,
+                    );
+                }
+                return false;
+            }
+
+            // Calculate canvas coordinates for this region
+            let c_left = scaled_start(left, min_left, CANVAS_W, span_x);
+            let c_right = scaled_end(left + width, min_left, CANVAS_W, span_x);
+            let c_top = scaled_start(top, min_top, CANVAS_H, span_y);
+            let c_bottom = scaled_end(top + height, min_top, CANVAS_H, span_y);
+
+            // Keep 1-char margin from pane border
+            let inner_left = (c_left + 1).max(c_left);
+            let inner_right = (c_right - 1).min(c_right);
+            let inner_top = (c_top + 1).max(c_top);
+            let inner_bottom = (c_bottom - 1).min(c_bottom);
+
+            let mut any_active = false;
+
+            if orientation == "row" {
+                // Horizontal split - draw vertical dividers
+                let inner_width = inner_right - inner_left;
+                if inner_width >= n {
+                    let step = inner_width / n;
+
+                    for i in 1..n {
+                        let x = inner_left + i * step;
+                        if x > inner_left && x < inner_right {
+                            for y in inner_top..=inner_bottom {
+                                put(x, y, '│', sub_color);
+                            }
+                        }
+                    }
+                }
+
+                // Recurse into children with adjusted widths
+                let child_width = width / n;
+                for (i, child) in children.iter().enumerate() {
+                    let child_left = left + i as i32 * child_width;
+                    let is_child_active = draw_nvim_splits_recursive(
+                        child,
+                        child_left,
+                        top,
+                        child_width,
+                        height,
+                        min_left,
+                        min_top,
+                        span_x,
+                        span_y,
+                        depth + 1,
+                        active_win,
+                        put,
+                    );
+                    any_active = any_active || is_child_active;
+                }
+            } else {
+                // Vertical split - draw horizontal dividers
+                let inner_height = inner_bottom - inner_top;
+                if inner_height >= n {
+                    let step = inner_height / n;
+
+                    for i in 1..n {
+                        let y = inner_top + i * step;
+                        if y > inner_top && y < inner_bottom {
+                            for x in inner_left..=inner_right {
+                                put(x, y, '─', sub_color);
+                            }
+                        }
+                    }
+                }
+
+                // Recurse into children with adjusted heights
+                let child_height = height / n;
+                for (i, child) in children.iter().enumerate() {
+                    let child_top = top + i as i32 * child_height;
+                    let is_child_active = draw_nvim_splits_recursive(
+                        child,
+                        left,
+                        child_top,
+                        width,
+                        child_height,
+                        min_left,
+                        min_top,
+                        span_x,
+                        span_y,
+                        depth + 1,
+                        active_win,
+                        put,
+                    );
+                    any_active = any_active || is_child_active;
+                }
+            }
+
+            any_active
+        }
+    }
+}
+
 const DISPLAY_SECONDS: f64 = 0.07;
 const PIDFILE: &str = "/tmp/tmux-minimap.pid";
 
@@ -59,6 +313,7 @@ struct PaneMeta {
 #[derive(Clone)]
 struct Pane {
     idx: i32,
+    pane_id: String,
     left: i32,
     top: i32,
     right: i32,
@@ -393,6 +648,7 @@ fn render(window_id_arg: &str, active_pane_id_arg: &str) -> io::Result<bool> {
         };
         panes.push(Pane {
             idx: meta.idx,
+            pane_id: meta.pane_id.clone(),
             left: lp.left,
             top: lp.top,
             right: lp.left + lp.width,
@@ -490,6 +746,26 @@ fn render(window_id_arg: &str, active_pane_id_arg: &str) -> io::Result<bool> {
         for y in (top + 1)..bottom {
             for x in (left + 1)..right {
                 put(x, y, ' ', style.fill);
+            }
+        }
+
+        // Draw nvim internal splits if this is an nvim pane
+        if p.cmd == "nvim" {
+            let pane_width = p.right - p.left;
+            let pane_height = p.bottom - p.top;
+            if let Some(nvim_layout) = read_nvim_layout(&p.pane_id) {
+                draw_nvim_splits(
+                    &nvim_layout,
+                    p.left,
+                    p.top,
+                    pane_width,
+                    pane_height,
+                    min_left,
+                    min_top,
+                    span_x,
+                    span_y,
+                    &mut put,
+                );
             }
         }
 
