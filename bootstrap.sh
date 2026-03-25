@@ -170,6 +170,23 @@ _fallback_podman_compose() {
 	fi
 }
 
+_fallback_skhd_zig() {
+	if [[ "$(uname)" == "Darwin" ]]; then
+		log_info "Installing skhd (Zig rewrite) from jackielii/tap..."
+		if ! brew tap | grep -q "^jackielii/tap"; then
+			log_info "Tapping jackielii/tap..."
+			brew tap jackielii/tap
+		fi
+		brew install jackielii/tap/skhd-zig
+		log_success "Installed skhd"
+		log_info "skhd requires accessibility permissions. Grant them in System Settings > Privacy & Security > Accessibility"
+		log_info "To start skhd: skhd --start-service"
+	else
+		log_warn "skhd is macOS-only. Skipping."
+		return 1
+	fi
+}
+
 _fallback_aws() {
 	if [[ "$(uname)" == "Darwin" ]]; then
 		log_info "Installing AWS CLI via official macOS installer..."
@@ -642,6 +659,13 @@ main() {
 	mkdir -p "$HOME/.config/ghostty"
 	create_symlink "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
 
+	# skhd config (hotkey daemon - Zig rewrite)
+	log_info "Setting up skhd configuration..."
+	mkdir -p "$HOME/.config/skhd"
+	create_symlink "$DOTFILES_DIR/skhd/skhdrc" "$HOME/.config/skhd/skhdrc"
+	# Also symlink to ~/.skhdrc for backwards compatibility
+	create_symlink "$DOTFILES_DIR/skhd/skhdrc" "$HOME/.skhdrc"
+
 	# Lazygit config
 	log_info "Setting up Lazygit configuration..."
 	local lazygit_conf_dir
@@ -660,6 +684,10 @@ main() {
 	# Install CLI tools (zoxide, fzf, fd, ripgrep, lazygit)
 	log_info "Installing CLI tools..."
 	install_packages cli
+
+	# Install window management tools (skhd)
+	log_info "Installing window management tools..."
+	install_packages wm
 
 	# Install container & cloud tools (podman, podman-compose, aws-cli)
 	log_info "Installing container & cloud tools..."

@@ -1,0 +1,39 @@
+# =============================================================================
+# SKHD - Simple Hotkey Daemon Configuration
+# https://github.com/jackielii/skhd.zig
+# =============================================================================
+#
+# This configuration is for skhd (Zig rewrite from jackielii/tap).
+# skhd requires accessibility permissions (System Settings > Privacy & Security).
+#
+# To reload config: skhd --restart-service
+# To start service: skhd --start-service
+# To stop service: skhd --stop-service
+#
+# Usage:
+#   - Mod keys: cmd, alt, ctrl, shift, fn
+#   - Combinations: hyper (cmd+shift+alt+ctrl), meh (shift+alt+ctrl)
+#   - Use `->` to pass key through to application after executing command
+#   - Use `; mode` to switch to a different mode
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Application Launchers
+# -----------------------------------------------------------------------------
+
+# Open terminal (Kitty)
+ctrl - 0 : open -a /Applications/Ghostty.app
+
+# Open browser (Google Chrome)
+ctrl - u : open -a /Applications/Google\ Chrome.app
+
+# -----------------------------------------------------------------------------
+# Example: Additional shortcuts (commented out)
+# -----------------------------------------------------------------------------
+
+# Open editor
+# ctrl - e : open -a Cursor || open -a "Visual Studio Code"
+
+# Lock screen
+# ctrl + alt - l : osascript -e 'tell application "System Events" to keystroke "q" using {control down, command down}'

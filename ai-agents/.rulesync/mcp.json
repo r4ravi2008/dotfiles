@@ -2,44 +2,51 @@
   "mcpServers": {
     "context7": {
       "description": "Up-to-date documentation and code examples for libraries",
+      "enabled": false,
       "type": "stdio",
       "command": "bunx",
-      "args": [
-        "--bun",
-        "@upstash/context7-mcp"
-      ],
+      "args": ["--bun", "@upstash/context7-mcp"],
       "env": {}
     },
     "playwright": {
       "description": "Browser automation via Playwright (accessibility-tree driven)",
+      "enabled": false,
       "type": "stdio",
       "command": "bunx",
-      "args": [
-        "--bun",
-        "@playwright/mcp@latest"
-      ],
+      "args": ["--bun", "@playwright/mcp@latest"],
       "env": {}
     },
     "pdf-reader": {
       "description": "Extract and read PDF content",
+      "enabled": false,
       "type": "stdio",
       "command": "bunx",
-      "args": [
-        "--bun",
-        "@sylphx/pdf-reader-mcp"
-      ],
+      "args": ["--bun", "@sylphx/pdf-reader-mcp"],
       "env": {}
     },
     "MiniMax": {
       "description": "MiniMax coding plan MCP (expects MINIMAX_API_KEY from your environment)",
+      "enabled": false,
       "type": "stdio",
       "command": "uvx",
-      "args": [
-        "minimax-coding-plan-mcp",
-        "-y"
-      ],
+      "args": ["minimax-coding-plan-mcp", "-y"],
       "env": {
         "MINIMAX_API_HOST": "https://api.minimax.io"
+      }
+    },
+    "x-twitter-mcp": {
+      "description": "Twitter/X MCP server from local source checkout",
+      "enabled": false,
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/aira/projects/mcps/x-twitter-mcp-server",
+        "run",
+        "x-twitter-mcp-server"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
       }
     }
   }
