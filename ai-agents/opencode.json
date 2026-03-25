@@ -42,10 +42,31 @@
     }
   },
   "mcp": {
-    "DAST-Orch": {
-      "type": "remote",
-      "url": "http://127.0.0.1:53333/mcp/stream",
-      "enabled": true
+    "context7": {
+      "type": "local",
+      "command": ["bunx", "--bun", "@upstash/context7-mcp"],
+      "enabled": false,
+      "environment": {}
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["bunx", "--bun", "@playwright/mcp@latest"],
+      "enabled": false,
+      "environment": {}
+    },
+    "pdf-reader": {
+      "type": "local",
+      "command": ["bunx", "--bun", "@sylphx/pdf-reader-mcp"],
+      "enabled": false,
+      "environment": {}
+    },
+    "MiniMax": {
+      "type": "local",
+      "command": ["uvx", "minimax-coding-plan-mcp", "-y"],
+      "enabled": false,
+      "environment": {
+        "MINIMAX_API_HOST": "https://api.minimax.io"
+      }
     }
   },
   "agent": {

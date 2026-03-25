@@ -466,7 +466,7 @@ bind-key -n M-< swap-window -t -1 \; select-window -t -1 #!important
 bind-key -n M-> swap-window -t +1 \; select-window -t +1 #!important
 # Pane minimap popup — only shown when the window is zoomed (navigating between zoomed panes).
 # IDs are injected by tmux formats to avoid focus races while popup opens.
-set-hook -g after-select-pane 'if-shell -F "#{window_zoomed_flag}" "run-shell -b \"tmux display-popup -E -k -w 52 -h 24 \\\"~/.dotfiles/tmux/pane-minimap --window-id #{window_id} --active-pane-id #{pane_id}\\\"\"" ""'
+set-hook -g after-select-pane "if-shell -F '#{window_zoomed_flag}' 'run-shell -b \"tmux display-popup -E -w 52 -h 24 -d #{pane_current_path} \\\"~/.dotfiles/tmux/pane-minimap --window-id #{window_id} --active-pane-id #{pane_id}\\\"\"' '"""
 # Alt+hjkl navigation with @pane-is-vim awareness
 # Always hand off to Neovim first when in a Vim pane. smart-splits then
 # navigates inside Neovim, and only crosses into tmux at Neovim edges.
