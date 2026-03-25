@@ -33,6 +33,9 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 │   │   └── mcp.json    # MCP server configurations
 │   ├── rulesync.jsonc  # Rulesync configuration
 │   └── AGENTS.md       # Generated output (symlinked to ~/)
+├── agents/             # Global ~/.agents directory (skills, lock file)
+│   ├── .skill-lock.json # Skill registry and agent selection
+│   └── skills/         # All agent skills (mcp-orchestration, obsidian-cli, etc.)
 ├── cursor/             # Cursor-specific configuration
 ├── bootstrap.sh        # Installation script
 └── AGENTS.md           # This file
@@ -95,8 +98,9 @@ The `bootstrap.sh` script:
 3. Installs oh-my-zsh plugins (zsh-autosuggestions, zsh-syntax-highlighting)
 4. Installs CLI tools (zoxide, fzf, fd, ripgrep, lazygit) via Homebrew or fallback
 5. Symlinks Ghostty and lazygit configurations
-6. Sets up AI agent configurations (OpenCode, AGENTS.md)
-7. Backs up existing configs before overwriting
+6. Syncs `agents/` to `~/.agents/` (skills + lock file for all AI coding agents)
+7. Sets up AI agent configurations (OpenCode, Cursor, AGENTS.md)
+8. Backs up existing configs before overwriting
 
 ## Development Guidelines
 
