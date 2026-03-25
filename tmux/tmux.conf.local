@@ -458,6 +458,15 @@ set -g @tilish-default 'main-vertical'
 set -g @tilish-smartsplits 'on'
 set -g @tilish-project "$HOME/projects/"
 set -g @tilish-dmenu 'on'
+# Override tilish Alt+p project picker to find git repos in subdirectories
+# Uses fd to locate .git dirs, strips /.git suffix, shows relative paths in fzf
+bind-key -n M-p run-shell 'proj="$HOME/projects"; this="$(fd --type d --hidden --no-ignore --glob ".git" "$proj" | while read -r d; do dirname "$d"; done | sed "s|^$HOME/projects/||" | sort | fzf-tmux -p 100%,100% --color 16)" && tmux new-window -c "$proj/$this" -n "$(basename "$this")" || exit 0' #!important
+# Swap window left/right with Alt+Shift+< / Alt+Shift+>
+bind-key -n M-< swap-window -t -1 \; select-window -t -1 #!important
+bind-key -n M-> swap-window -t +1 \; select-window -t +1 #!important
+# Pane minimap popup — reactive: draw layout for exact window/pane at selection time
+# IDs are injected by tmux formats to avoid focus races while popup opens.
+set-hook -g after-select-pane 'run-shell -b "tmux display-popup -E -k -w 52 -h 24 \"python3 ~/.dotfiles/tmux/pane-minimap.py --window-id #{window_id} --active-pane-id #{pane_id}\""'
 # Zoom-aware Alt+hjkl navigation with @pane-is-vim awareness
 # In zoomed windows, bypass Vim handoff and always switch tmux panes with -Z
 # so the target pane remains zoomed.
