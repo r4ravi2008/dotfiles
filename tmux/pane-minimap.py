@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 
-DISPLAY_SECONDS = 0.12
+DISPLAY_SECONDS = 0.05
 PIDFILE = "/tmp/tmux-minimap.pid"
 
 RESET = "\033[0m"
