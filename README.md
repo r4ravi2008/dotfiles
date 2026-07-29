@@ -5,6 +5,7 @@ Personal dotfiles for:
 - Neovim (LazyVim): `nvim/` -> `~/.config/nvim`
 - Zsh: `zsh/zshrc`, `zsh/zshenv` -> `~/.zshrc`, `~/.zshenv`
 - Tmux (gpakosz/.tmux framework): `tmux/tmux.conf.local` -> `~/.tmux/.tmux.conf.local`
+- Herdr: `herdr/config.toml` -> `~/.config/herdr/config.toml`
 - OpenCode config + plugins: `opencode/` -> `~/.config/opencode/*`
 - Shared AI agent rules (rulesync): `ai-agents/` (generates `AGENTS.md`, MCP configs, etc.)
 
@@ -32,6 +33,7 @@ After bootstrap:
 - Creates symlinks from your home directory into `~/.dotfiles/`
 - Backs up any existing files it would replace to `~/.dotfiles_backup/<timestamp>/`
 - Installs `gpakosz/.tmux` to `~/.tmux` (if missing) and links `~/.tmux.conf`
+- Links the Herdr keymap and installs the pinned `herdr-splits.nvim` bridge when Herdr is available
 - Installs zsh plugin repos (autosuggestions + syntax-highlighting) into the oh-my-zsh custom plugin dir
 - Sets up OpenCode config and plugin directories under `~/.config/opencode/`
 - Links rulesync-generated AI agent outputs when present (OpenCode MCP config + `~/AGENTS.md`)
@@ -60,6 +62,7 @@ Notes:
 - `nvim/`: LazyVim config (entry: `nvim/init.lua`)
 - `zsh/`: zsh runtime config
 - `tmux/`: tmux local overrides for the gpakosz framework
+- `herdr/`: tmux-aligned Herdr keys and the Neovim bridge action bindings
 - `opencode/`: OpenCode app config, custom plugins, and slash commands
 - `ai-agents/`: rulesync inputs + generated outputs for AI coding tools
 - `cursor/`: Cursor-specific config (e.g. MCP)
@@ -74,6 +77,7 @@ Notes:
 
 - Required: `git`, `zsh`, `tmux`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
+- Optional: `herdr` 0.7.0+ for agent workspaces and seamless Neovim pane navigation
 
 ## Uninstall / rollback
 

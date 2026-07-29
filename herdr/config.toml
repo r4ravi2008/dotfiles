@@ -1,0 +1,90 @@
+# Herdr keybindings aligned with the tmux + Neovim workflow in this repo.
+
+[keys]
+prefix = "ctrl+b"
+
+help = "prefix+?"
+settings = "prefix+shift+s"
+detach = "prefix+d"
+reload_config = "prefix+r"
+open_notification_target = "prefix+shift+o"
+
+workspace_picker = "prefix+s"
+goto = "prefix+g"
+new_workspace = "prefix+ctrl+c"
+rename_workspace = "prefix+$"
+previous_workspace = "prefix+("
+next_workspace = "prefix+)"
+
+new_tab = "prefix+c"
+rename_tab = "prefix+comma"
+previous_tab = ["prefix+p", "prefix+ctrl+h"]
+next_tab = ["prefix+n", "prefix+ctrl+l"]
+switch_tab = "prefix+1..9"
+close_tab = "prefix+ampersand"
+
+edit_scrollback = "prefix+e"
+copy_mode = ["prefix+[", "prefix+enter"]
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+cycle_pane_next = "prefix+o"
+cycle_pane_previous = "prefix+shift+tab"
+last_pane = "prefix+semicolon"
+split_vertical = ["prefix+v", "prefix+shift+minus"]
+split_horizontal = "prefix+minus"
+close_pane = "prefix+x"
+zoom = ["prefix+z", "prefix+plus"]
+resize_mode = "prefix+shift+r"
+toggle_sidebar = "prefix+b"
+
+# herdr-splits owns these direct chords. It forwards them into Neovim when
+# appropriate and operates on Herdr panes otherwise.
+[[keys.command]]
+key = "alt+h"
+type = "plugin_action"
+command = "herdr-splits.nav-left"
+description = "navigate left across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "alt+j"
+type = "plugin_action"
+command = "herdr-splits.nav-down"
+description = "navigate down across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "alt+k"
+type = "plugin_action"
+command = "herdr-splits.nav-up"
+description = "navigate up across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "alt+l"
+type = "plugin_action"
+command = "herdr-splits.nav-right"
+description = "navigate right across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "ctrl+h"
+type = "plugin_action"
+command = "herdr-splits.resize-left"
+description = "resize left across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "plugin_action"
+command = "herdr-splits.resize-down"
+description = "resize down across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "plugin_action"
+command = "herdr-splits.resize-up"
+description = "resize up across Neovim and Herdr panes"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "plugin_action"
+command = "herdr-splits.resize-right"
+description = "resize right across Neovim and Herdr panes"

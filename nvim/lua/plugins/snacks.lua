@@ -1,8 +1,9 @@
 -- Snacks.nvim configuration
--- Add keymaps for floating terminal windows (like lazygit) to navigate to tmux panes
+-- Add keymaps for floating terminal windows (like lazygit) to navigate or resize multiplexer panes
 return {
   "folke/snacks.nvim",
   opts = function(_, opts)
+    local pane_navigation = require("config.pane-navigation")
     -- Configure lazygit to use maximum space
     opts.lazygit = {
       win = {
@@ -10,12 +11,6 @@ return {
         height = 0, -- 0 means full height
       },
     }
-    -- Function to navigate directly to tmux pane
-    local function tmux_navigate(direction)
-      local tmux_dir = ({ h = "L", j = "D", k = "U", l = "R" })[direction]
-      vim.fn.system("tmux select-pane -" .. tmux_dir .. " -Z")
-    end
-
     -- Fix scrambled terminal UI (lazygit) when navigating between tmux panes
     -- The issue occurs when panes exist and zoom state changes
     local function refresh_lazygit_terminal()
@@ -104,11 +99,15 @@ return {
           if win_config.relative ~= "" then
             local keymap_opts = { buffer = buf, silent = true }
             
-            -- Use Ctrl+hjkl to navigate to tmux panes from floating terminals
-            vim.keymap.set("t", "<C-h>", function() tmux_navigate("h") end, keymap_opts)
-            vim.keymap.set("t", "<C-j>", function() tmux_navigate("j") end, keymap_opts)
-            vim.keymap.set("t", "<C-k>", function() tmux_navigate("k") end, keymap_opts)
-            vim.keymap.set("t", "<C-l>", function() tmux_navigate("l") end, keymap_opts)
+            -- Match the normal split controls: Alt navigates and Ctrl resizes.
+            for _, direction in ipairs({ "h", "j", "k", "l" }) do
+              vim.keymap.set("t", "<A-" .. direction .. ">", function()
+                pane_navigation.move(direction)
+              end, keymap_opts)
+              vim.keymap.set("t", "<C-" .. direction .. ">", function()
+                pane_navigation.resize(direction)
+              end, keymap_opts)
+            end
           end
         end, 10)
       end,
@@ -117,4 +116,3 @@ return {
     return opts
   end,
 }
-

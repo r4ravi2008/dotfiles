@@ -10,66 +10,26 @@ local opts = { noremap = true, silent = true }
 vim.keymap.del({ "n", "i", "v" }, "<A-j>")
 vim.keymap.del({ "n", "i", "v" }, "<A-k>")
 
--- smart-splits.nvim keymaps (set here in VeryLazy so they load AFTER LazyVim defaults)
-local ss = require("smart-splits")
-
-local function has_split_in_direction(vim_dir)
-  return vim.fn.winnr(vim_dir) ~= vim.fn.winnr()
-end
-
-local function tmux_is_zoomed()
-  if not (vim.env.TMUX and vim.env.TMUX_PANE) then
-    return false
-  end
-
-  local zoomed = vim.trim(vim.fn.system({ "tmux", "display-message", "-p", "-t", vim.env.TMUX_PANE, "#{window_zoomed_flag}" }))
-  return vim.v.shell_error == 0 and zoomed == "1"
-end
-
-local function tmux_select_pane_preserve_zoom(tmux_dir)
-  if not vim.env.TMUX then
-    return false
-  end
-
-  if vim.env.TMUX_PANE then
-    vim.fn.system({ "tmux", "select-pane", "-t", vim.env.TMUX_PANE, "-" .. tmux_dir, "-Z" })
-    if vim.v.shell_error == 0 then
-      return true
-    end
-  end
-
-  vim.fn.system({ "tmux", "select-pane", "-" .. tmux_dir, "-Z" })
-  return vim.v.shell_error == 0
-end
-
-local function tmux_zoomed_move(tmux_dir, vim_dir, fallback)
-  return function()
-    if not has_split_in_direction(vim_dir) and tmux_is_zoomed() then
-      if tmux_select_pane_preserve_zoom(tmux_dir) then
-        return
-      end
-    end
-    fallback()
-  end
-end
+-- Use smart-splits under tmux and herdr-splits inside a Herdr pane.
+local pane_navigation = require("config.pane-navigation")
 
 -- Navigate between splits/panes (matches tilish Alt+hjkl)
-vim.keymap.set({ "n", "t" }, "<A-h>", tmux_zoomed_move("L", "h", ss.move_cursor_left), { desc = "Move to left split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-j>", tmux_zoomed_move("D", "j", ss.move_cursor_down), { desc = "Move to below split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-k>", tmux_zoomed_move("U", "k", ss.move_cursor_up), { desc = "Move to above split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-l>", tmux_zoomed_move("R", "l", ss.move_cursor_right), { desc = "Move to right split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-h>", function() pane_navigation.move("h") end, { desc = "Move to left split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-j>", function() pane_navigation.move("j") end, { desc = "Move to below split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-k>", function() pane_navigation.move("k") end, { desc = "Move to above split/pane" })
+vim.keymap.set({ "n", "t" }, "<A-l>", function() pane_navigation.move("l") end, { desc = "Move to right split/pane" })
 
 -- Resize splits
-vim.keymap.set("n", "<C-h>", ss.resize_left, { desc = "Resize split left" })
-vim.keymap.set("n", "<C-j>", ss.resize_down, { desc = "Resize split down" })
-vim.keymap.set("n", "<C-k>", ss.resize_up, { desc = "Resize split up" })
-vim.keymap.set("n", "<C-l>", ss.resize_right, { desc = "Resize split right" })
+vim.keymap.set("n", "<C-h>", function() pane_navigation.resize("h") end, { desc = "Resize split left" })
+vim.keymap.set("n", "<C-j>", function() pane_navigation.resize("j") end, { desc = "Resize split down" })
+vim.keymap.set("n", "<C-k>", function() pane_navigation.resize("k") end, { desc = "Resize split up" })
+vim.keymap.set("n", "<C-l>", function() pane_navigation.resize("l") end, { desc = "Resize split right" })
 
 -- Swap buffers between windows
-vim.keymap.set("n", "<leader><leader>h", ss.swap_buf_left, { desc = "Swap buffer left" })
-vim.keymap.set("n", "<leader><leader>j", ss.swap_buf_down, { desc = "Swap buffer down" })
-vim.keymap.set("n", "<leader><leader>k", ss.swap_buf_up, { desc = "Swap buffer up" })
-vim.keymap.set("n", "<leader><leader>l", ss.swap_buf_right, { desc = "Swap buffer right" })
+vim.keymap.set("n", "<leader><leader>h", function() pane_navigation.swap("h") end, { desc = "Swap buffer left" })
+vim.keymap.set("n", "<leader><leader>j", function() pane_navigation.swap("j") end, { desc = "Swap buffer down" })
+vim.keymap.set("n", "<leader><leader>k", function() pane_navigation.swap("k") end, { desc = "Swap buffer up" })
+vim.keymap.set("n", "<leader><leader>l", function() pane_navigation.swap("l") end, { desc = "Swap buffer right" })
 
 map("n", "<leader>as", "<cmd>CopilotChatSaveWithInput<CR>", opts)
 map("n", "<leader>gil", "<cmd>Octo issue list<CR>", opts)

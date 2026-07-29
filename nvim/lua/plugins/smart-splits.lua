@@ -7,6 +7,7 @@
 --   <leader><leader>hjkl - Swap buffers between Neovim windows
 return {
   "mrjones2014/smart-splits.nvim",
+  cond = vim.env.HERDR_ENV ~= "1",
   lazy = false, -- must not lazy-load; sets @pane-is-vim for tmux integration
   opts = {
     -- allow navigation when tmux pane is zoomed; tmux select-pane -Z

@@ -654,6 +654,27 @@ main() {
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux.conf.local"
 
+	# Herdr config and the pinned Neovim pane-navigation bridge
+	log_info "Setting up Herdr configuration..."
+	mkdir -p "$HOME/.config/herdr"
+	create_symlink "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+	if command -v herdr >/dev/null 2>&1; then
+		local herdr_splits_ref="107273e004e4f7ef07f13c83164d2cb2c51df65d"
+		local herdr_splits_state
+		herdr_splits_state="$(herdr plugin list --plugin herdr-splits --json 2>/dev/null || true)"
+		if grep -Eq '"plugin_id"[[:space:]]*:[[:space:]]*"herdr-splits"' <<<"$herdr_splits_state" \
+			&& grep -Eq '"resolved_commit"[[:space:]]*:[[:space:]]*"'"$herdr_splits_ref"'"' <<<"$herdr_splits_state"; then
+			log_info "Herdr splits plugin already installed at $herdr_splits_ref"
+		elif herdr plugin install lmilojevicc/herdr-splits.nvim \
+			--ref "$herdr_splits_ref" --yes; then
+			log_success "Installed Herdr splits plugin"
+		else
+			log_warn "Could not install Herdr splits plugin; direct Alt/Ctrl pane bindings remain unavailable"
+		fi
+	else
+		log_warn "Herdr is not installed; skipped the Herdr splits plugin"
+	fi
+
 	# Ghostty config
 	log_info "Setting up Ghostty configuration..."
 	mkdir -p "$HOME/.config/ghostty"
