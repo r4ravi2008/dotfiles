@@ -1,7 +1,7 @@
 # Herdr keybindings aligned with the tmux + Neovim workflow in this repo.
 
 [keys]
-prefix = "ctrl+b"
+prefix = "ctrl+a"
 
 help = "prefix+?"
 settings = "prefix+shift+s"
