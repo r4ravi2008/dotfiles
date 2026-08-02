@@ -5,7 +5,7 @@ prefix = "ctrl+a"
 
 help = "prefix+?"
 settings = "prefix+shift+s"
-detach = "prefix+d"
+detach = ["prefix+d", "alt+shift+e"]
 reload_config = "prefix+r"
 open_notification_target = "prefix+shift+o"
 
@@ -17,10 +17,11 @@ previous_workspace = "prefix+("
 next_workspace = "prefix+)"
 
 new_tab = "prefix+c"
-rename_tab = "prefix+comma"
+rename_tab = ["prefix+comma", "alt+n"]
 previous_tab = ["prefix+p", "prefix+ctrl+h"]
 next_tab = ["prefix+n", "prefix+ctrl+l"]
-switch_tab = "prefix+1..9"
+# Herdr switches existing tabs only; unlike tilish, missing indices are not created.
+switch_tab = ["prefix+1..9", "alt+1..9"]
 close_tab = "prefix+ampersand"
 
 edit_scrollback = "prefix+e"
@@ -29,13 +30,17 @@ focus_pane_left = "prefix+h"
 focus_pane_down = "prefix+j"
 focus_pane_up = "prefix+k"
 focus_pane_right = "prefix+l"
-cycle_pane_next = "prefix+o"
+cycle_pane_next = ["prefix+o", "alt+o"]
 cycle_pane_previous = "prefix+shift+tab"
 last_pane = "prefix+semicolon"
+swap_pane_left = ["prefix+shift+h", "alt+shift+h"]
+swap_pane_down = ["prefix+shift+j", "alt+shift+j"]
+swap_pane_up = ["prefix+shift+k", "alt+shift+k"]
+swap_pane_right = ["prefix+shift+l", "alt+shift+l"]
 split_vertical = ["prefix+v", "prefix+shift+minus"]
-split_horizontal = "prefix+minus"
-close_pane = "prefix+x"
-zoom = ["prefix+z", "prefix+plus"]
+split_horizontal = ["prefix+minus", "alt+enter"]
+close_pane = ["prefix+x", "alt+shift+q"]
+zoom = ["prefix+z", "prefix+plus", "alt+z"]
 resize_mode = "prefix+shift+r"
 toggle_sidebar = "prefix+b"
 
