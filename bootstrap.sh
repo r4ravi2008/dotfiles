@@ -632,7 +632,10 @@ setup_ai_agents() {
 	if [[ -f "$mcp_source" ]] && command -v claude >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
 		log_info "Registering MCP servers with Claude Code (user scope)..."
 		local server_names
-		server_names="$(jq -r '.mcpServers // {} | keys[]' "$mcp_source")"
+		if ! server_names="$(jq -r '.mcpServers // {} | keys[]' "$mcp_source" 2>/dev/null)"; then
+			log_warn "Could not parse $mcp_source; skipping Claude Code MCP registration"
+			server_names=""
+		fi
 		while IFS= read -r name; do
 			[[ -z "$name" ]] && continue
 			local url
