@@ -48,7 +48,7 @@ Repeatable setup:
 
 1. Push these changes (branch is `main`).
 2. In [Cloud Workspace preferences](https://devportal.intuit.com/app/dp/cloudWorkspaces), set Dotfiles to the GitHub URL **with the branch**:
-   `https://github.intuit.com/rkommineni/dotfiles/tree/main`
+   `https://github.intuit.com/rkommineni/cws-dotfiles/tree/main`
    (a URL with no `/tree/<ref>` falls back to `master`, which this repo does not use).
 3. Create a **new** workspace (existing ones are not retrofitted).
 
