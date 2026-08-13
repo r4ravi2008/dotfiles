@@ -37,7 +37,6 @@ vim.keymap.set("n", "<leader><leader>j", function() pane_navigation.swap("j") en
 vim.keymap.set("n", "<leader><leader>k", function() pane_navigation.swap("k") end, { desc = "Swap buffer up" })
 vim.keymap.set("n", "<leader><leader>l", function() pane_navigation.swap("l") end, { desc = "Swap buffer right" })
 
-map("n", "<leader>as", "<cmd>CopilotChatSaveWithInput<CR>", opts)
 map("n", "<leader>gil", "<cmd>Octo issue list<CR>", opts)
 map("n", "<leader>gic", "<cmd>Octo issue create<CR>", opts)
 map("n", "<leader>gpc", "<cmd>Octo pr create<CR>", opts)
