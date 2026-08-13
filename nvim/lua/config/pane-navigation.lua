@@ -1,7 +1,10 @@
 local M = {}
 
 local in_herdr = vim.env.HERDR_ENV == "1"
-local backend = require(in_herdr and "herdr-splits" or "smart-splits")
+-- Move under Herdr is owned by herdr-nvim-nav keymaps (fast C action).
+-- Resize uses herdr-splits in Herdr and smart-splits under tmux.
+local resize_backend = require(in_herdr and "herdr-splits" or "smart-splits")
+local move_backend = in_herdr and nil or require("smart-splits")
 
 local directions = {
   h = { name = "left", tmux = "L", vim = "h" },
@@ -49,24 +52,35 @@ end
 
 function M.move(key)
   local dir = direction(key)
-  if not in_herdr and not has_split_in_direction(dir.vim) and tmux_is_zoomed() then
+  if in_herdr then
+    -- herdr-nvim-nav owns Alt+hjkl maps under Herdr; this is a fallback for
+    -- callers (e.g. snacks) that invoke move() directly.
+    local prev = vim.api.nvim_get_current_win()
+    vim.cmd("wincmd " .. dir.vim)
+    if vim.api.nvim_get_current_win() == prev then
+      vim.fn.system({ "herdr", "pane", "focus", "--direction", dir.name, "--current" })
+    end
+    return
+  end
+
+  if not has_split_in_direction(dir.vim) and tmux_is_zoomed() then
     if tmux_select_pane_preserve_zoom(dir.tmux) then
       return
     end
   end
 
-  backend["move_cursor_" .. dir.name]()
+  move_backend["move_cursor_" .. dir.name]()
 end
 
 function M.resize(key)
   local dir = direction(key)
-  backend["resize_" .. dir.name]()
+  resize_backend["resize_" .. dir.name]()
 end
 
 function M.swap(key)
   local dir = direction(key)
   if not in_herdr then
-    backend["swap_buf_" .. dir.name]()
+    move_backend["swap_buf_" .. dir.name]()
     return
   end
 

@@ -1,3 +1,4 @@
+onboarding = false
 # Herdr keybindings aligned with the tmux + Neovim workflow in this repo.
 
 [keys]
@@ -44,32 +45,33 @@ zoom = ["prefix+z", "prefix+plus", "alt+z"]
 resize_mode = "prefix+shift+r"
 toggle_sidebar = "prefix+b"
 
-# herdr-splits owns these direct chords. It forwards them into Neovim when
-# appropriate and operates on Herdr panes otherwise.
+# Fast Alt+hjkl nav via herdr-nvim-nav (C socket action). herdr-splits' bash
+# nav scripts fork the herdr CLI several times per keypress (~300ms); this is ~10ms.
 [[keys.command]]
 key = "alt+h"
 type = "plugin_action"
-command = "herdr-splits.nav-left"
+command = "herdr-nvim-nav.left"
 description = "navigate left across Neovim and Herdr panes"
 
 [[keys.command]]
 key = "alt+j"
 type = "plugin_action"
-command = "herdr-splits.nav-down"
+command = "herdr-nvim-nav.down"
 description = "navigate down across Neovim and Herdr panes"
 
 [[keys.command]]
 key = "alt+k"
 type = "plugin_action"
-command = "herdr-splits.nav-up"
+command = "herdr-nvim-nav.up"
 description = "navigate up across Neovim and Herdr panes"
 
 [[keys.command]]
 key = "alt+l"
 type = "plugin_action"
-command = "herdr-splits.nav-right"
+command = "herdr-nvim-nav.right"
 description = "navigate right across Neovim and Herdr panes"
 
+# Ctrl+hjkl resize still uses herdr-splits (less latency-sensitive).
 [[keys.command]]
 key = "ctrl+h"
 type = "plugin_action"
@@ -93,3 +95,7 @@ key = "ctrl+l"
 type = "plugin_action"
 command = "herdr-splits.resize-right"
 description = "resize right across Neovim and Herdr panes"
+
+[theme]
+name = "tokyo-night"
+auto_switch = false

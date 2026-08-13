@@ -195,4 +195,10 @@ return {
     vscode = true,
   },
   { "augmentcode/augment.nvim" },
+  {
+    "jugarpeupv/aws.nvim",
+    config = function()
+      require("aws").setup()
+    end,
+  },
 }

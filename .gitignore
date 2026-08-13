@@ -18,6 +18,11 @@ nvim/.luarc.json
 # Sensitive files (add patterns for any secrets)
 *.local.secret
 .env
+.config/secrets/
+zsh/*.bak
+zsh/*.bak.*
+*.bak.*
+.claude/settings.local.json
 
 # AI Agents (rulesync) - generated files
 ai-agents/rulesync.local.jsonc

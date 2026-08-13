@@ -144,16 +144,16 @@ fi
 # -----------------------------------------------------------------------------
 # 6. HISTORY
 # -----------------------------------------------------------------------------
-HISTSIZE=50000
-SAVEHIST=50000
+HISTSIZE=1000000
+SAVEHIST=1000000
 HISTFILE=~/.zsh_history
 setopt EXTENDED_HISTORY
 setopt HIST_EXPIRE_DUPS_FIRST
-setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_IGNORE_SPACE
 setopt HIST_VERIFY
+setopt HIST_SAVE_NO_DUPS
 setopt SHARE_HISTORY
-setopt INC_APPEND_HISTORY
 
 # -----------------------------------------------------------------------------
 # 7. ENVIRONMENT VARIABLES
@@ -167,8 +167,11 @@ export PLUGIN_CLI_DISABLE_AUTOUPDATE=true
 if [[ -z "$DOCKER_HOST" ]]; then
   local podman_sock="${XDG_RUNTIME_DIR:-/tmp}/podman/podman.sock"
   local podman_machine_sock="$HOME/.local/share/containers/podman/machine/podman.sock"
+  local podman_machine_api_sock="${TMPDIR:-/tmp}podman/podman-machine-default-api.sock"
   if [[ -S "$podman_sock" ]]; then
     export DOCKER_HOST="unix://$podman_sock"
+  elif [[ -S "$podman_machine_api_sock" ]]; then
+    export DOCKER_HOST="unix://$podman_machine_api_sock"
   elif [[ -S "$podman_machine_sock" ]]; then
     export DOCKER_HOST="unix://$podman_machine_sock"
   fi
@@ -239,18 +242,15 @@ fi
 # 10. FZF
 # -----------------------------------------------------------------------------
 if [[ -t 0 && -t 1 ]]; then
-  if [[ -d "$HOME/.fzf" ]]; then
-    if [[ "$PATH" != *"$HOME/.fzf/bin"* ]]; then
-      export PATH="$PATH:$HOME/.fzf/bin"
-    fi
-    [[ -f "$HOME/.fzf/shell/key-bindings.zsh" ]] && source "$HOME/.fzf/shell/key-bindings.zsh"
-    [[ -f "$HOME/.fzf/shell/completion.zsh" ]] && source "$HOME/.fzf/shell/completion.zsh"
-  fi
-
   export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
   if (( $+commands[fd] )); then
     export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  fi
+
+  # fzf 0.48+ built-in shell integration (works regardless of install method)
+  if (( $+commands[fzf] )); then
+    source <(fzf --zsh)
   fi
 fi
 
@@ -321,3 +321,156 @@ esac
 
 # opencode
 export PATH=/Users/rkommineni/.opencode/bin:$PATH
+
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
+export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Added by Windsurf
+export PATH="/Users/rkommineni/.codeium/windsurf/bin:$PATH"
+
+# Obsidian vault shortcuts
+OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/ObsidianMind"
+
+ob() {
+  local sess="personal"
+  local vault="$OBSIDIAN_VAULT"
+  local target_win=""
+
+  if tmux has-session -t "$sess" 2>/dev/null; then
+    # Check if any window already has nvim running in the vault
+    for win_id in $(tmux list-windows -t "$sess" -F '#{window_id}'); do
+      for pane_id in $(tmux list-panes -t "$win_id" -F '#{pane_id}'); do
+        local pcmd ppath
+        pcmd=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}')
+        ppath=$(tmux display-message -p -t "$pane_id" '#{pane_current_path}')
+        if [[ "$pcmd" == "nvim" && "$ppath" == "$vault" ]]; then
+          target_win="$win_id"
+          break 2
+        fi
+      done
+    done
+
+    if [[ -n "$target_win" ]]; then
+      tmux select-window -t "$target_win"
+    else
+      tmux new-window -t "$sess" -n "vault-vim" -c "$vault" "nvim"
+    fi
+
+    if [[ -n "$TMUX" ]]; then
+      tmux switch-client -t "$sess"
+    else
+      tmux attach-session -t "$sess"
+    fi
+  else
+    tmux new-session -d -s "$sess" -n "vault-vim" -c "$vault" "nvim"
+    if [[ -n "$TMUX" ]]; then
+      tmux switch-client -t "$sess"
+    else
+      tmux attach-session -t "$sess"
+    fi
+  fi
+}
+
+obc() {
+  local sess="personal"
+  local vault="$OBSIDIAN_VAULT"
+
+  if tmux has-session -t "$sess" 2>/dev/null; then
+    # Check if any pane in window 0 is running opencode in the vault
+    local found=0
+    for pane_id in $(tmux list-panes -t "$sess:0" -F '#{pane_id}' 2>/dev/null); do
+      local pane_cmd pane_path
+      pane_cmd=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}')
+      pane_path=$(tmux display-message -p -t "$pane_id" '#{pane_current_path}')
+      if [[ "$pane_cmd" == "opencode" && "$pane_path" == "$vault" ]]; then
+        found=1
+        break
+      fi
+    done
+
+    if (( found )); then
+      if [[ -n "$TMUX" ]]; then
+        tmux switch-client -t "$sess:0"
+      else
+        tmux attach-session -t "$sess:0"
+      fi
+    else
+      local win
+      win=$(tmux new-window -t "$sess" -n "vault-opencode" -c "$vault" -P -F '#{window_id}' "opencode")
+      tmux split-window -t "$win" -h -c "$vault" "nvim"
+      if [[ -n "$TMUX" ]]; then
+        tmux switch-client -t "$sess"
+      else
+        tmux attach-session -t "$sess"
+      fi
+    fi
+  else
+    tmux new-session -d -s "$sess" -n "vault-opencode" -c "$vault" "opencode"
+    tmux split-window -t "$sess:0" -h -c "$vault" "nvim"
+    if [[ -n "$TMUX" ]]; then
+      tmux switch-client -t "$sess"
+    else
+      tmux attach-session -t "$sess"
+    fi
+  fi
+}
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/rkommineni/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+# ZIA-CERT-STORE-MANAGED profile.d sourcing
+if [ -d /etc/profile.d ]; then
+  for _zia_f in /etc/profile.d/*.sh; do [ -f "$_zia_f" ] && . "$_zia_f"; done
+  unset _zia_f
+fi
+# ZIA-CERT-STORE-MANAGED-END
+
+
+fi
+
+# Devstack / kit host helpers (engine-agnostic)
+export PATH="$HOME/.local/bin:/opt/homebrew/opt/gnu-sed/libexec/gnubin:/opt/homebrew/opt/libpq/bin:$PATH"
+
+# Switch container engine for this shell (and children).
+# Usage: use-rancher | use-podman | docker-engine
+use-rancher() {
+  unset DOCKER_HOST
+  export PATH="$HOME/.rd/bin:$PATH"
+  if command -v docker >/dev/null 2>&1; then
+    docker context use rancher-desktop >/dev/null
+  fi
+  echo "docker -> rancher-desktop ($(docker context show 2>/dev/null || echo unknown))"
+}
+
+use-podman() {
+  # Prefer an explicit podman docker context if present; else set DOCKER_HOST to the machine socket.
+  if docker context ls --format '{{.Name}}' 2>/dev/null | grep -qx 'podman'; then
+    unset DOCKER_HOST
+    docker context use podman >/dev/null
+  else
+    local sock=""
+    sock="$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}' 2>/dev/null || true)"
+    if [[ -z "$sock" || ! -S "$sock" ]]; then
+      # fallbacks used by the existing Podman block above
+      for candidate in         "${XDG_RUNTIME_DIR:-/tmp}/podman/podman.sock"         "${TMPDIR:-/tmp}podman/podman-machine-default-api.sock"         "$HOME/.local/share/containers/podman/machine/podman.sock"
+      do
+        [[ -S "$candidate" ]] && sock="$candidate" && break
+      done
+    fi
+    if [[ -n "$sock" && -S "$sock" ]]; then
+      export DOCKER_HOST="unix://$sock"
+    else
+      echo "use-podman: no running Podman socket found (start with: podman machine start)" >&2
+      return 1
+    fi
+  fi
+  echo "docker -> podman (${DOCKER_HOST:-context=$(docker context show 2>/dev/null)})"
+}
+
+docker-engine() {
+  echo "context: $(docker context show 2>/dev/null || echo n/a)"
+  echo "DOCKER_HOST: ${DOCKER_HOST:-<unset>}"
+  docker version --format 'server: {{.Server.Version}} ({{.Server.Os}}/{{.Server.Arch}})' 2>/dev/null || echo 'server: unreachable'
+}

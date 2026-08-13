@@ -6,18 +6,24 @@ local map = vim.api.nvim_set_keymap
 local opts = { noremap = true, silent = true }
 
 -- Disable LazyVim's default Alt+j/k move-line mappings
--- so smart-splits.nvim can use Alt+hjkl for pane/split navigation
+-- so Alt+hjkl can be used for pane/split navigation
 vim.keymap.del({ "n", "i", "v" }, "<A-j>")
 vim.keymap.del({ "n", "i", "v" }, "<A-k>")
 
--- Use smart-splits under tmux and herdr-splits inside a Herdr pane.
+-- smart-splits under tmux; herdr-nvim-nav (Alt move) + herdr-splits (Ctrl resize)
+-- inside a Herdr pane.
 local pane_navigation = require("config.pane-navigation")
+local in_herdr = vim.env.HERDR_ENV == "1"
 
--- Navigate between splits/panes (matches tilish Alt+hjkl)
-vim.keymap.set({ "n", "t" }, "<A-h>", function() pane_navigation.move("h") end, { desc = "Move to left split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-j>", function() pane_navigation.move("j") end, { desc = "Move to below split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-k>", function() pane_navigation.move("k") end, { desc = "Move to above split/pane" })
-vim.keymap.set({ "n", "t" }, "<A-l>", function() pane_navigation.move("l") end, { desc = "Move to right split/pane" })
+-- Navigate between splits/panes (matches tilish Alt+hjkl).
+-- Under Herdr, herdr-nvim-nav owns these maps so it can maintain the pane marker
+-- and use the fast socket path at edges.
+if not in_herdr then
+  vim.keymap.set({ "n", "t" }, "<A-h>", function() pane_navigation.move("h") end, { desc = "Move to left split/pane" })
+  vim.keymap.set({ "n", "t" }, "<A-j>", function() pane_navigation.move("j") end, { desc = "Move to below split/pane" })
+  vim.keymap.set({ "n", "t" }, "<A-k>", function() pane_navigation.move("k") end, { desc = "Move to above split/pane" })
+  vim.keymap.set({ "n", "t" }, "<A-l>", function() pane_navigation.move("l") end, { desc = "Move to right split/pane" })
+end
 
 -- Resize splits
 vim.keymap.set("n", "<C-h>", function() pane_navigation.resize("h") end, { desc = "Resize split left" })

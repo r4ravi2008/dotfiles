@@ -260,7 +260,7 @@ fn draw_nvim_splits_recursive(
     }
 }
 
-const DISPLAY_SECONDS: f64 = 0.07;
+const DISPLAY_SECONDS: f64 = 0.15;
 const PIDFILE: &str = "/tmp/tmux-minimap.pid";
 
 const RESET: &str = "\x1b[0m";

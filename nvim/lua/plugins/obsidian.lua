@@ -10,7 +10,7 @@ return {
     workspaces = {
       {
         name = "vault",
-        path = "~/Library/Mobile Documents/com~apple~CloudDocs/ObsidianMind",
+        path = "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/ObsidianMind",
       },
     },
     completion = {
@@ -57,7 +57,7 @@ return {
     {
       "<leader>of",
       function()
-        vim.cmd('silent !open "$HOME/Library/Mobile Documents/com~apple~CloudDocs/ObsidianMind"')
+        vim.cmd('silent !open "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/ObsidianMind"')
       end,
       desc = "Open vault folder in Finder",
     },

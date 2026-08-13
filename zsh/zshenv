@@ -1,4 +1,14 @@
 # Machine-local secrets/env (not tracked)
 # Keep this lightweight (plain exports only) to avoid slowing shell startup.
-[[ -r "$HOME/.config/secrets/env.zsh" ]] && source "$HOME/.config/secrets/env.zsh"
-. "$HOME/.cargo/env"
+if [[ -o interactive ]]; then
+  [[ -r "$HOME/.config/secrets/env.zsh" ]] && source "$HOME/.config/secrets/env.zsh"
+fi
+
+# Prefer Rancher Desktop when present; otherwise leave unset (or set Podman explicitly).
+if [[ -S "$HOME/.rd/docker.sock" ]]; then
+  unset DOCKER_HOST
+elif [[ -S "${TMPDIR:-/tmp}podman/podman-machine-default-api.sock" ]]; then
+  export DOCKER_HOST="unix://${TMPDIR:-/tmp}podman/podman-machine-default-api.sock"
+fi
+
+[[ -r "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"

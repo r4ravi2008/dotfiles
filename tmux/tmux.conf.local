@@ -383,6 +383,9 @@ tmux_conf_urlscan_options="--compact --dedupe"
 
 # this is the place to override or undo settings
 
+# required by image.nvim kitty backend inside tmux
+set -g allow-passthrough on
+
 # increase history size
 #set -g history-limit 10000
 
