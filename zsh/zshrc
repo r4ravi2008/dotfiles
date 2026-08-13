@@ -312,23 +312,27 @@ fi
 true
 
 # pnpm
-export PNPM_HOME="/home/r4ravi2008/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
+if [[ -d "$HOME/.local/share/pnpm" ]]; then
+  export PNPM_HOME="$HOME/.local/share/pnpm"
+  case ":$PATH:" in
+    *":$PNPM_HOME:"*) ;;
+    *) export PATH="$PNPM_HOME:$PATH" ;;
+  esac
+fi
 # pnpm end
 
-# opencode
-export PATH=/Users/rkommineni/.opencode/bin:$PATH
+# opencode (laptop install location; ~/.opencode/bin is already on PATH above)
+[[ -d "$HOME/.opencode/bin" ]] && export PATH="$HOME/.opencode/bin:$PATH"
 
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
-export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
-export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
+if [[ "$OSTYPE" == darwin* && -d /opt/homebrew/opt/openjdk@21 ]]; then
+  export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
+  export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
 
 # Added by Windsurf
-export PATH="/Users/rkommineni/.codeium/windsurf/bin:$PATH"
+[[ -d "$HOME/.codeium/windsurf/bin" ]] && export PATH="$HOME/.codeium/windsurf/bin:$PATH"
 
 # Obsidian vault shortcuts
 OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/ObsidianMind"
@@ -418,7 +422,7 @@ obc() {
 }
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/rkommineni/.rd/bin:$PATH"
+[[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 # ZIA-CERT-STORE-MANAGED profile.d sourcing
 if [ -d /etc/profile.d ]; then
@@ -427,11 +431,11 @@ if [ -d /etc/profile.d ]; then
 fi
 # ZIA-CERT-STORE-MANAGED-END
 
-
-fi
-
 # Devstack / kit host helpers (engine-agnostic)
-export PATH="$HOME/.local/bin:/opt/homebrew/opt/gnu-sed/libexec/gnubin:/opt/homebrew/opt/libpq/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+if [[ "$OSTYPE" == darwin* ]]; then
+  export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:/opt/homebrew/opt/libpq/bin:$PATH"
+fi
 
 # Switch container engine for this shell (and children).
 # Usage: use-rancher | use-podman | docker-engine
