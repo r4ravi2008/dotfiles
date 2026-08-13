@@ -200,6 +200,57 @@ _fallback_herdr() {
 	fi
 }
 
+# LazyVim needs Neovim 0.11+. Debian's neovim package is often 0.10.x.
+NVIM_MIN_VERSION="0.11"
+
+nvim_meets_min_version() {
+	command -v nvim >/dev/null 2>&1 || return 1
+	local ver major minor
+	ver="$(nvim --version 2>/dev/null | sed -n 's/^NVIM v\([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2/p' | head -1)"
+	[[ -n "$ver" ]] || return 1
+	major="${ver%% *}"
+	minor="${ver#* }"
+	(( major > 0 )) || (( major == 0 && minor >= 11 ))
+}
+
+_fallback_nvim() {
+	local os arch url asset prefix dest tmp
+	os="$(uname -s)"
+	arch="$(uname -m)"
+	case "$os/$arch" in
+	Linux/x86_64)  asset="nvim-linux-x86_64.tar.gz"; prefix="nvim-linux-x86_64" ;;
+	Linux/aarch64|Linux/arm64) asset="nvim-linux-arm64.tar.gz"; prefix="nvim-linux-arm64" ;;
+	Darwin/arm64)  asset="nvim-macos-arm64.tar.gz"; prefix="nvim-macos-arm64" ;;
+	Darwin/x86_64) asset="nvim-macos-x86_64.tar.gz"; prefix="nvim-macos-x86_64" ;;
+	*)
+		log_warn "nvim: unsupported platform ($os/$arch). Install manually from https://github.com/neovim/neovim/releases"
+		return 1
+		;;
+	esac
+
+	url="https://github.com/neovim/neovim/releases/latest/download/${asset}"
+	dest="$HOME/.local/opt/${prefix}"
+	tmp="$(mktemp -d)"
+	log_info "Installing latest Neovim from GitHub ($asset)..."
+	if ! curl -fsSL "$url" -o "$tmp/$asset"; then
+		log_warn "Failed to download $url"
+		rm -rf "$tmp"
+		return 1
+	fi
+	mkdir -p "$HOME/.local/opt" "$HOME/.local/bin"
+	rm -rf "$dest"
+	tar -xzf "$tmp/$asset" -C "$HOME/.local/opt"
+	rm -rf "$tmp"
+	if [[ ! -x "$dest/bin/nvim" ]]; then
+		log_warn "Neovim tarball did not contain $dest/bin/nvim"
+		return 1
+	fi
+	ln -sfn "$dest/bin/nvim" "$HOME/.local/bin/nvim"
+	export PATH="$HOME/.local/bin:$PATH"
+	hash -r 2>/dev/null || true
+	log_success "Installed $(nvim --version | head -1) -> $HOME/.local/bin/nvim"
+}
+
 _fallback_aws() {
 	if [[ "$(uname)" == "Darwin" ]]; then
 		log_info "Installing AWS CLI via official macOS installer..."
@@ -298,8 +349,12 @@ install_packages() {
 
 	while IFS='|' read -r cmd brew apt dnf pacman zypper fallback; do
 		if command -v "$cmd" >/dev/null 2>&1; then
-			log_info "$cmd already installed"
-			continue
+			if [[ "$cmd" == "nvim" ]] && ! nvim_meets_min_version; then
+				log_info "nvim is older than ${NVIM_MIN_VERSION}; will install the GitHub release"
+			else
+				log_info "$cmd already installed"
+				continue
+			fi
 		fi
 
 		missing_cmds+=("$cmd")
