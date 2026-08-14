@@ -1,2 +1,3 @@
-herdr-nvim-nav
+# Compiled action binary at the plugin root (not lua/herdr-nvim-nav/).
+/herdr-nvim-nav
 *.o
