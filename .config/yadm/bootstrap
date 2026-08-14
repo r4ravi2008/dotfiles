@@ -7,18 +7,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export DOTFILES_PROFILE="${DOTFILES_PROFILE:-cws}"
 
-# Keep the same ~/.dotfiles layout used on the laptop. CWS copies the repo
-# into $HOME (nvim/, zsh/, bootstrap.sh, …), which we relocate once.
-if [[ ! -d "$HOME/.dotfiles/nvim" && -d "$ROOT/nvim" && "$ROOT" == "$HOME" ]]; then
-	mkdir -p "$HOME/.dotfiles"
-	# Leave .bash_aliases in $HOME so CWS default .bashrc can source it even
-	# if bootstrap later fails. bootstrap.sh will symlink it into ~/.dotfiles.
-	for item in nvim zsh tmux herdr opencode ai-agents ghostty skhd lazygit cursor \
-		bootstrap.sh packages.conf README.md AGENTS.md; do
-		if [[ -e "$HOME/$item" && ! -e "$HOME/.dotfiles/$item" ]]; then
-			mv "$HOME/$item" "$HOME/.dotfiles/"
-		fi
-	done
+# CWS copies this repo onto $HOME without .git, so `git pull` would fail if we
+# only relocated those files. Clone the live repo into ~/.dotfiles instead.
+CWS_DOTFILES_REMOTE="${CWS_DOTFILES_REMOTE:-https://github.intuit.com/rkommineni/cws-dotfiles.git}"
+CWS_DOTFILES_REF="${CWS_DOTFILES_REF:-main}"
+
+if [[ ! -d "$HOME/.dotfiles/.git" ]]; then
+	if [[ -d "$HOME/.dotfiles" && ! -d "$HOME/.dotfiles/nvim" ]]; then
+		rmdir "$HOME/.dotfiles" 2>/dev/null || true
+	fi
+	if [[ -d "$HOME/.dotfiles" && ! -d "$HOME/.dotfiles/.git" ]]; then
+		mv "$HOME/.dotfiles" "$HOME/.dotfiles.bak.$$"
+	fi
+	git clone --branch "$CWS_DOTFILES_REF" "$CWS_DOTFILES_REMOTE" "$HOME/.dotfiles"
 fi
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
