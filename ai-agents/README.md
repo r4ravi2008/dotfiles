@@ -54,7 +54,7 @@ npx rulesync generate
 .
 ├── .rulesync/                  # === SOURCE OF TRUTH (edit here) ===
 │   ├── commands/               #   Personal slash commands (Jira, PR, Effect, deslop)
-│   ├── skills/                 #   Obsidian + use-computer-mcp + hunk/plannotator extras
+│   ├── skills/                 #   commit + Obsidian + use-computer-mcp + hunk/plannotator extras
 │   ├── mcp.json                #   MCP server definitions
 │   └── .aiignore               #   File ignore patterns
 │
