@@ -63,6 +63,7 @@ npx rulesync generate
 ├── .opencode/                  # Generated: OpenCode config
 ├── .codex/                     # Generated: Codex CLI config
 ├── .agents/                    # Generated: shared agent skills (Obsidian)
+├── laptop-skills/              # Laptop-only (IDDA / herdr --remote); not installed on CWS
 │
 ├── opencode.json               # Generated: OpenCode app + MCP config
 ├── .mcp.json                   # Generated: Claude Code MCP config

@@ -455,6 +455,42 @@ _install_skills_from_github() {
 	return 1
 }
 
+# Skills that require the laptop (IDDA Computer Use, herdr --remote attach).
+# Kept out of .rulesync/skills so CWS rulesync sync does not install them.
+_laptop_only_skill_names() {
+	printf '%s\n' creating-cws-from-devstack-fork
+}
+
+_install_laptop_only_skills() {
+	local src_root="$DOTFILES_DIR/ai-agents/laptop-skills"
+	local name src dest
+	[[ -d "$src_root" ]] || return 0
+	while IFS= read -r name; do
+		[[ -z "$name" ]] && continue
+		src="$src_root/$name"
+		[[ -d "$src" && -f "$src/SKILL.md" ]] || continue
+		for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
+			mkdir -p "$dest"
+			rm -rf "$dest/$name"
+			cp -R "$src" "$dest/$name"
+		done
+		log_info "Installed laptop-only skill $name"
+	done < <(_laptop_only_skill_names)
+}
+
+_remove_laptop_only_skills() {
+	local name dest
+	while IFS= read -r name; do
+		[[ -z "$name" ]] && continue
+		for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
+			if [[ -e "$dest/$name" ]]; then
+				rm -rf "$dest/$name"
+				log_info "Removed laptop-only skill $name from $dest (not for CWS)"
+			fi
+		done
+	done < <(_laptop_only_skill_names)
+}
+
 _install_bundled_skill() {
 	local name="$1"
 	local src="$DOTFILES_DIR/ai-agents/.rulesync/skills/$name"
@@ -1105,6 +1141,13 @@ setup_ai_agents() {
 
 	_install_matt_pocock_skills || true
 	configure_plannotator_local_only || true
+
+	# Laptop-only skills (IDDA / herdr --remote). Never scaffold these on CWS.
+	if is_cloud_workspace; then
+		_remove_laptop_only_skills || true
+	else
+		_install_laptop_only_skills || true
+	fi
 
 	log_success "AI agent configurations set up"
 }
