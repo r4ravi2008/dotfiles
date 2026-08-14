@@ -10,6 +10,10 @@
         "clientId": "1601185624273.8899143856786",
         "callbackPort": 3118
       }
+    },
+    "open-computer-use": {
+      "command": "open-computer-use",
+      "args": ["mcp"]
     }
   }
 }

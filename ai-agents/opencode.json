@@ -732,6 +732,23 @@
       "type": "remote",
       "url": "http://127.0.0.1:53333/mcp/stream",
       "enabled": true
+    },
+    "slack-mcp": {
+      "oauth": {
+        "clientId": "1601185624273.8899143856786",
+        "callbackPort": 3118
+      },
+      "type": "remote",
+      "url": "https://mcp.slack.com/mcp",
+      "enabled": true
+    },
+    "open-computer-use": {
+      "type": "local",
+      "command": [
+        "open-computer-use",
+        "mcp"
+      ],
+      "enabled": true
     }
   },
   "agent": {

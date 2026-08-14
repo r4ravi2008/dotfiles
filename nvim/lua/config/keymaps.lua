@@ -46,3 +46,18 @@ map("n", "<leader>gps", "<cmd>Octo pr search<CR>", opts)
 map("n", "<Leader>gr", ":OpenInGHRepo <CR>", { silent = true, noremap = true })
 map("n", "<Leader>gf", ":OpenInGHFile <CR>", { silent = true, noremap = true })
 map("v", "<Leader>gf", ":OpenInGHFileLines <CR>", { silent = true, noremap = true })
+
+-- Oil buffers are oil:// URLs, so LazyVim.root.git() misses them and lazygit
+-- opens in nvim's process cwd. Resolve from the Oil folder instead.
+local git_root = require("config.git-root")
+if vim.fn.executable("lazygit") == 1 then
+  vim.keymap.set("n", "<leader>gg", function()
+    Snacks.lazygit({ cwd = git_root.git() })
+  end, { desc = "Lazygit (Root Dir)" })
+  vim.keymap.set("n", "<leader>gG", function()
+    Snacks.lazygit({ cwd = git_root.context_dir() })
+  end, { desc = "Lazygit (cwd)" })
+end
+vim.keymap.set("n", "<leader>gl", function()
+  Snacks.picker.git_log({ cwd = git_root.git() })
+end, { desc = "Git Log" })

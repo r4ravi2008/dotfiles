@@ -94,7 +94,8 @@ Notes:
 - `herdr/`: tmux-aligned Herdr keys and the Neovim bridge action bindings
 - `opencode/`: OpenCode app config, custom plugins, and slash commands
 - `ai-agents/`: rulesync inputs + generated outputs for AI coding tools
-- `cursor/`: Cursor-specific config (e.g. MCP)
+- `cursor/`: Cursor remote settings (MCP OAuth callback auto-forward)
+- `ssh/cws-mcp-forwards.conf`: LocalForward 8787 (Atlassian) and 3118 (Slack) on every `cws.*` host
 
 ## Making changes
 

@@ -53,10 +53,8 @@ npx rulesync generate
 ```
 .
 ├── .rulesync/                  # === SOURCE OF TRUTH (edit here) ===
-│   ├── rules/overview.md       #   Global AI agent rules & coding standards
-│   ├── commands/               #   18 slash commands
-│   ├── subagents/              #   2 specialized agent profiles
-│   ├── skills/                 #   4 reusable knowledge modules
+│   ├── commands/               #   Personal slash commands (Jira, PR, Effect, deslop)
+│   ├── skills/                 #   Obsidian + use-computer-mcp (Matt Pocock kit is global)
 │   ├── mcp.json                #   MCP server definitions
 │   └── .aiignore               #   File ignore patterns
 │
@@ -64,12 +62,10 @@ npx rulesync generate
 ├── .cursor/                    # Generated: Cursor config
 ├── .opencode/                  # Generated: OpenCode config
 ├── .codex/                     # Generated: Codex CLI config
-├── .copilot/                   # Generated: GitHub Copilot config
+├── .agents/                    # Generated: shared agent skills (Obsidian)
 │
-├── AGENTS.md                   # Generated: Global rules (Windsurf, general)
 ├── opencode.json               # Generated: OpenCode app + MCP config
 ├── .mcp.json                   # Generated: Claude Code MCP config
-├── .codeiumignore              # Generated: Windsurf ignore
 ├── .cursorignore               # Generated: Cursor ignore
 └── rulesync.jsonc              # Rulesync configuration
 ```
@@ -78,64 +74,34 @@ npx rulesync generate
 
 ## What's Included
 
-### Commands (18)
+### Commands (4)
 
-Slash commands available across all supported tools:
+Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills), installed globally into `~/.agents/skills`.
 
 | Command | Description |
 |---------|-------------|
-| `/commit` | Analyze staged changes and generate a semantic commit message |
-| `/debug` | Systematic 8-step debugging workflow |
 | `/deslop` | Remove AI-generated code slop from the current branch |
-| `/code-review` | Perform a structured code review |
-| `/pr` | Create a pull request with summary |
-| `/test` | Write or run tests |
-| `/refactor` | Refactor code with clear rationale |
-| `/explain` | Explain code or architecture |
-| `/docs` | Generate documentation |
-| `/spec` | Write a technical specification |
-| `/security-audit` | Audit code for security issues |
-| `/review-pr` | Review an existing pull request |
-| `/fix-merge-conflicts` | Resolve merge conflicts |
-| `/git-commit-flow` | Full git add/commit/push workflow |
-| `/run-all-tests-and-fix` | Run the test suite and fix failures |
-| `/cleanup-deprecate-code` | Clean up deprecated code |
+| `/pr` | Create a pull request with `gh` |
 | `/audit-effect-native-impl` | Audit Effect/native implementations |
-| `/jira-list` | List Jira tickets |
+| `/jira-list` | List Jira tickets for the current sprint |
 
-### Skills (4)
-
-Reusable knowledge modules agents can load on demand:
+### Skills (3)
 
 | Skill | Description |
 |-------|-------------|
-| `mcp-orchestration` | Control and inspect MCP servers via CLI |
-| `project-context` | Summarize project goals, constraints, and architecture |
 | `obsidian-cli` | Interact with Obsidian vaults via CLI |
 | `obsidian-markdown` | Obsidian-flavored Markdown conventions |
+| `use-computer-mcp` | Drive desktop apps via Open Computer Use MCP |
 
-### Subagents (2)
+### MCP Servers
 
-Specialized agent profiles for focused tasks:
-
-| Agent | Role | Key Constraint |
-|-------|------|----------------|
-| `planner` | Creates detailed implementation plans for features, refactors, and bug fixes | Read-only -- produces plans, never writes code |
-| `explorer` | Performs structured 6-step codebase analysis and outputs architectural summaries | Exploration and analysis only |
-
-### MCP Servers (7 defined)
-
-Configured in `.rulesync/mcp.json`. Most are disabled by default:
+Configured in `.rulesync/mcp.json`.
 
 | Server | Type | Default |
 |--------|------|---------|
-| `context7` | Library documentation lookup | Disabled |
-| `playwright` | Browser automation | Disabled |
-| `pdf-reader` | PDF content extraction | Disabled |
-| `MiniMax` | Coding plan generation | Disabled |
-| `x-twitter-mcp` | Twitter/X integration | Disabled |
-| `DAST-Orch` | DAST orchestrator | Enabled (URL) |
-| `slack` | Slack integration | Enabled (URL) |
+| `DAST-Orch` | CWS MCP stream | Enabled (URL) |
+| `slack-mcp` | Slack MCP | Enabled (HTTP + OAuth) |
+| `open-computer-use` | Desktop computer use (`open-computer-use mcp`) | Enabled (stdio) |
 
 ## Customization
 
@@ -196,7 +162,7 @@ The `rulesync.jsonc` file controls generation behavior:
 
 ```jsonc
 {
-  "targets": ["opencode", "codexcli", "cursor", "windsurf", "claudecode"],
+  "targets": ["opencode", "codexcli", "cursor", "claudecode"],
   "features": ["rules", "ignore", "mcp", "commands", "subagents", "skills"],
   "delete": true       // Remove orphaned generated files
 }

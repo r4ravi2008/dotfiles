@@ -55,6 +55,121 @@ create_symlink() {
 	log_success "Created symlink: $target -> $source"
 }
 
+# Merge Cursor/VS Code settings so MCP OAuth callback ports are always forwarded.
+# Arrays are unioned by remotePort; other keys deep-merge.
+merge_json_settings() {
+	local dest="$1"
+	local src="$2"
+
+	if [[ ! -f "$src" ]]; then
+		return 1
+	fi
+	if ! command -v jq >/dev/null 2>&1; then
+		log_warn "jq not found; cannot merge $dest"
+		return 1
+	fi
+
+	mkdir -p "$(dirname "$dest")"
+	if [[ ! -s "$dest" ]]; then
+		printf '%s\n' '{}' > "$dest"
+	fi
+
+	local tmp
+	tmp="$(mktemp)"
+	if jq --slurpfile add "$src" '
+		. as $base
+		| $add[0] as $extra
+		| ($base * ($extra | del(."remote.SSH.defaultForwardedPorts", ."remote.portsAttributes")))
+		| ."remote.portsAttributes" = ((."remote.portsAttributes" // {}) + ($extra."remote.portsAttributes" // {}))
+		| ."remote.SSH.defaultForwardedPorts" = (
+			((."remote.SSH.defaultForwardedPorts" // []) + ($extra."remote.SSH.defaultForwardedPorts" // []))
+			| unique_by(.remotePort)
+		)
+	' "$dest" > "$tmp"; then
+		mv "$tmp" "$dest"
+		return 0
+	fi
+	rm -f "$tmp"
+	log_warn "Failed to merge settings into $dest"
+	return 1
+}
+
+# Laptop: Include Host cws.* LocalForwards so herdr --remote / ssh / Desktop App
+# tunnel Atlassian (8787) and Slack (3118) OAuth callbacks without a manual ssh -L.
+ensure_cws_mcp_ssh_forwards() {
+	local snippet="$DOTFILES_DIR/ssh/cws-mcp-forwards.conf"
+	local ssh_config="$HOME/.ssh/config"
+	local include_line="Include $snippet"
+
+	if [[ ! -f "$snippet" ]]; then
+		log_warn "Missing $snippet; skipping CWS MCP SSH forwards"
+		return
+	fi
+
+	mkdir -p "$HOME/.ssh"
+	if [[ -f "$ssh_config" ]] && grep -Fq "$snippet" "$ssh_config"; then
+		log_info "SSH already includes CWS MCP OAuth forwards"
+		return
+	fi
+
+	local tmp
+	tmp="$(mktemp)"
+	{
+		echo "# dotfiles: CWS MCP OAuth callback forwards (8787 Atlassian, 3118 Slack)"
+		echo "$include_line"
+		echo ""
+		[[ -f "$ssh_config" ]] && cat "$ssh_config"
+	} > "$tmp"
+	mv "$tmp" "$ssh_config"
+	chmod 600 "$ssh_config" 2>/dev/null || true
+	log_success "Added CWS MCP OAuth SSH forwards to ~/.ssh/config"
+}
+
+# CWS: merge into remote IDE machine settings (written before user bootstrap).
+merge_cws_ide_machine_settings() {
+	local src="$DOTFILES_DIR/cursor/cws-remote-settings.json"
+	local dest
+	local merged=0
+
+	if [[ ! -f "$src" ]]; then
+		return
+	fi
+
+	for dest in \
+		"$HOME/.cursor-server/data/Machine/settings.json" \
+		"$HOME/.vscode-server/data/Machine/settings.json"
+	do
+		if merge_json_settings "$dest" "$src"; then
+			log_success "Merged MCP port-forward settings into $dest"
+			merged=1
+		fi
+	done
+
+	if [[ "$merged" -eq 0 ]]; then
+		log_warn "Could not merge MCP port-forward settings into Cursor/VS Code machine settings"
+	fi
+}
+
+# Laptop: Cursor Remote-SSH user settings so Desktop Cursor also forwards the callbacks.
+merge_laptop_cursor_forward_settings() {
+	local src="$DOTFILES_DIR/cursor/cws-remote-settings.json"
+	local dest="$HOME/Library/Application Support/Cursor/User/settings.json"
+
+	if [[ "$(uname)" != "Darwin" ]]; then
+		return
+	fi
+	if [[ ! -f "$src" ]]; then
+		return
+	fi
+	if [[ ! -d "$(dirname "$dest")" ]]; then
+		log_info "Cursor user settings directory missing; skip laptop Cursor port-forward merge"
+		return
+	fi
+	if merge_json_settings "$dest" "$src"; then
+		log_success "Merged MCP port-forward settings into Cursor user settings"
+	fi
+}
+
 # =============================================================================
 # Cross-platform package installer engine
 # =============================================================================
@@ -249,6 +364,27 @@ _fallback_nvim() {
 	export PATH="$HOME/.local/bin:$PATH"
 	hash -r 2>/dev/null || true
 	log_success "Installed $(nvim --version | head -1) -> $HOME/.local/bin/nvim"
+}
+
+_fallback_open_computer_use() {
+	if ! command -v npm >/dev/null 2>&1; then
+		log_warn "open-computer-use: npm not found. Install Node.js, then re-run bootstrap."
+		return 1
+	fi
+	log_info "Installing open-computer-use via npm..."
+	if npm install -g open-computer-use; then
+		export PATH="$(npm root -g 2>/dev/null)/../bin:$HOME/.local/bin:$PATH"
+		hash -r 2>/dev/null || true
+		if command -v open-computer-use >/dev/null 2>&1; then
+			log_success "Installed open-computer-use"
+			if [[ "$(uname)" == "Darwin" ]]; then
+				log_info "Grant Accessibility and Screen Recording when open-computer-use doctor asks"
+			fi
+			return 0
+		fi
+	fi
+	log_warn "open-computer-use install finished but binary not found on PATH"
+	return 1
 }
 
 _fallback_aws() {
@@ -693,16 +829,27 @@ setup_ai_agents() {
 		fi
 		while IFS= read -r name; do
 			[[ -z "$name" ]] && continue
-			local url
+			local url cmd
 			url="$(jq -r --arg n "$name" '.mcpServers[$n].url // empty' "$mcp_source")"
+			cmd="$(jq -r --arg n "$name" '.mcpServers[$n].command // empty' "$mcp_source")"
 			if [[ -n "$url" ]]; then
 				if claude mcp add --scope user --transport http "$name" "$url" >/dev/null 2>&1; then
 					log_success "Registered Claude Code MCP server: $name"
 				else
 					log_warn "Failed to register Claude Code MCP server: $name"
 				fi
+			elif [[ -n "$cmd" ]]; then
+				local -a stdio_args=()
+				while IFS= read -r a; do
+					[[ -n "$a" ]] && stdio_args+=("$a")
+				done < <(jq -r --arg n "$name" '.mcpServers[$n].args // [] | .[]' "$mcp_source")
+				if claude mcp add --scope user --transport stdio "$name" -- "$cmd" "${stdio_args[@]}" >/dev/null 2>&1; then
+					log_success "Registered Claude Code MCP server: $name"
+				else
+					log_warn "Failed to register Claude Code MCP server: $name"
+				fi
 			else
-				log_warn "Skipping Claude Code MCP server '$name': no url field"
+				log_warn "Skipping Claude Code MCP server '$name': no url or command field"
 			fi
 		done <<< "$server_names"
 	elif [[ -f "$mcp_source" ]]; then
@@ -903,7 +1050,13 @@ main() {
 
 	if [[ "$DOTFILES_PROFILE" == "cws" ]]; then
 		start_herdr_server
+		log_info "Configuring MCP OAuth port forwards for Cursor/VS Code..."
+		merge_cws_ide_machine_settings
 	else
+		log_info "Setting up CWS MCP OAuth SSH forwards..."
+		ensure_cws_mcp_ssh_forwards
+		merge_laptop_cursor_forward_settings
+
 		log_info "Setting up Ghostty configuration..."
 		mkdir -p "$HOME/.config/ghostty"
 		create_symlink "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"

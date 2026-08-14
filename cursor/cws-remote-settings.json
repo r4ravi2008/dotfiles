@@ -1,0 +1,28 @@
+{
+  "remote.autoForwardPorts": true,
+  "remote.autoForwardPortsSource": "hybrid",
+  "remote.portsAttributes": {
+    "8787": {
+      "label": "Atlassian MCP OAuth callback",
+      "onAutoForward": "silent",
+      "protocol": "http"
+    },
+    "3118": {
+      "label": "Slack MCP OAuth callback",
+      "onAutoForward": "silent",
+      "protocol": "http"
+    }
+  },
+  "remote.SSH.defaultForwardedPorts": [
+    {
+      "localPort": 8787,
+      "name": "Atlassian MCP OAuth",
+      "remotePort": 8787
+    },
+    {
+      "localPort": 3118,
+      "name": "Slack MCP OAuth",
+      "remotePort": 3118
+    }
+  ]
+}

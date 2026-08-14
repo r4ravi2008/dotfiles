@@ -34,7 +34,8 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 │   │   └── mcp.json    # MCP server configurations
 │   ├── rulesync.jsonc  # Rulesync configuration
 │   └── ...             # Generated per-tool outputs (.cursor/, .claude/, etc.)
-├── cursor/             # Cursor-specific configuration
+├── cursor/             # Cursor remote settings (MCP OAuth port forwards)
+├── ssh/                # Laptop SSH includes (CWS MCP OAuth LocalForwards)
 ├── bootstrap.sh        # Installation script
 └── AGENTS.md           # This file
 ```
@@ -76,7 +77,8 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - OpenCode MCP config: generated at `ai-agents/opencode.json` (symlinked to `~/.config/opencode/opencode.json`)
 - Claude Code: commands/agents/skills in `.claude/`, MCP merged into `~/.claude.json` (user-scope) from rulesync `mcp.json`
 - Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
-- Shared commands and subagents across all AI coding tools
+- Personal commands: `/pr`, `/deslop`, `/jira-list`, `/audit-effect-native-impl`
+- Obsidian skills in rulesync; engineering kit is Matt Pocock's skills in `~/.agents/skills`
 
 #### Rulesync (Source of Truth)
 
@@ -99,6 +101,7 @@ The `bootstrap.sh` script:
 6. Sets up AI agent configurations (OpenCode, Cursor, Claude Code)
 7. Syncs `ai-agents/.rulesync/skills/` to `~/.agents/skills/` (shared skills for all AI coding agents)
 8. Backs up existing configs before overwriting
+9. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
 
 ## Development Guidelines
 
