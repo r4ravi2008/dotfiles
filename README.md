@@ -109,6 +109,7 @@ Notes:
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
 - Optional: `herdr` 0.7.0+ for agent workspaces and seamless Neovim pane navigation
 - Optional: `hunk` (diff review TUI) and `plannotator` (plan review UI, including extras: compound, setup-goal, visual-explainer)
+- Bootstrap also installs [Matt Pocock's skills](https://github.com/mattpocock/skills) (engineering + productivity) into `~/.agents/skills`
 
 ## Uninstall / rollback
 

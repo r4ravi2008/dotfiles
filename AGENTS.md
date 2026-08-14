@@ -78,7 +78,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - Claude Code: commands/agents/skills in `.claude/`, MCP merged into `~/.claude.json` (user-scope) from rulesync `mcp.json`
 - Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
 - Personal commands: `/pr`, `/deslop`, `/jira-list`, `/audit-effect-native-impl`
-- Obsidian skills in rulesync; engineering kit is Matt Pocock's skills in `~/.agents/skills`
+- Obsidian skills in rulesync. Bootstrap installs Matt Pocock's engineering + productivity kit (`tdd`, `grill-me`, `setup-matt-pocock-skills`, …) into `~/.agents/skills`, `~/.claude/skills`, and `~/.cursor/skills` (git clone; CWS Node 18 cannot run `npx skills`).
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432`; laptop SSH forwards that port.
 
 #### Rulesync (Source of Truth)

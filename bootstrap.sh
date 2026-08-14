@@ -516,6 +516,40 @@ _install_global_skills_pkg() {
 	return 1
 }
 
+# CWS Node 18 cannot run `npx skills` (needs util.styleText / Node 20+).
+# Clone the kit and copy engineering + productivity skills into agent dirs.
+_install_matt_pocock_skills() {
+	local tmp src dest name
+	tmp="$(mktemp -d)"
+	log_info "Installing Matt Pocock skills (engineering + productivity)"
+	if ! git clone --depth 1 --filter=blob:none --sparse https://github.com/mattpocock/skills.git "$tmp/repo" >/dev/null 2>&1; then
+		log_warn "Could not clone mattpocock/skills"
+		rm -rf "$tmp"
+		return 1
+	fi
+	if ! git -C "$tmp/repo" sparse-checkout set skills/engineering skills/productivity >/dev/null 2>&1; then
+		log_warn "Could not sparse-checkout mattpocock/skills"
+		rm -rf "$tmp"
+		return 1
+	fi
+	while IFS= read -r src; do
+		[[ -f "$src/SKILL.md" ]] || continue
+		name="$(basename "$src")"
+		for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
+			mkdir -p "$dest"
+			rm -rf "$dest/$name"
+			cp -R "$src" "$dest/$name"
+		done
+	done < <(find "$tmp/repo/skills/engineering" "$tmp/repo/skills/productivity" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+	rm -rf "$tmp"
+	if [[ -d "$HOME/.agents/skills/setup-matt-pocock-skills" ]]; then
+		log_success "Installed Matt Pocock skills"
+		return 0
+	fi
+	log_warn "Matt Pocock skills clone finished but setup-matt-pocock-skills is missing"
+	return 1
+}
+
 _fallback_hunk() {
 	export PATH="$HOME/.local/bin:$PATH"
 	_ensure_npm || true
@@ -1048,6 +1082,8 @@ setup_ai_agents() {
 	if command -v plannotator >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/plannotator" ]]; then
 		_install_global_skills_pkg "backnotprop/plannotator/apps/skills/extra" || true
 	fi
+
+	_install_matt_pocock_skills || true
 
 	log_success "AI agent configurations set up"
 }

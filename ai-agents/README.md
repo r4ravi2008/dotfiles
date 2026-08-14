@@ -54,7 +54,7 @@ npx rulesync generate
 .
 ├── .rulesync/                  # === SOURCE OF TRUTH (edit here) ===
 │   ├── commands/               #   Personal slash commands (Jira, PR, Effect, deslop)
-│   ├── skills/                 #   Obsidian + use-computer-mcp (Matt Pocock kit is global)
+│   ├── skills/                 #   Obsidian + use-computer-mcp + hunk/plannotator extras
 │   ├── mcp.json                #   MCP server definitions
 │   └── .aiignore               #   File ignore patterns
 │
@@ -76,7 +76,7 @@ npx rulesync generate
 
 ### Commands (4)
 
-Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills), installed globally into `~/.agents/skills`.
+Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills). `bootstrap.sh` clones that repo and copies the engineering + productivity skills into `~/.agents/skills` (and Claude/Cursor skill dirs).
 
 | Command | Description |
 |---------|-------------|
