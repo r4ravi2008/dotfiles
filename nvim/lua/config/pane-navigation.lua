@@ -1,10 +1,30 @@
 local M = {}
 
 local in_herdr = vim.env.HERDR_ENV == "1"
--- Move under Herdr is owned by herdr-nvim-nav keymaps (fast C action).
--- Resize uses herdr-splits in Herdr and smart-splits under tmux.
-local resize_backend = require(in_herdr and "herdr-splits" or "smart-splits")
-local move_backend = in_herdr and nil or require("smart-splits")
+
+-- Do not require backends at import time. snacks.nvim config loads this module
+-- before smart-splits / herdr-splits are on the runtimepath.
+local function require_optional(name)
+  local ok, mod = pcall(require, name)
+  if ok then
+    return mod
+  end
+  return nil
+end
+
+local function resize_backend()
+  if in_herdr then
+    return require_optional("herdr-splits")
+  end
+  return require_optional("smart-splits")
+end
+
+local function move_backend()
+  if in_herdr then
+    return nil
+  end
+  return require_optional("smart-splits")
+end
 
 local directions = {
   h = { name = "left", tmux = "L", vim = "h" },
@@ -69,18 +89,37 @@ function M.move(key)
     end
   end
 
-  move_backend["move_cursor_" .. dir.name]()
+  local backend = move_backend()
+  if backend then
+    backend["move_cursor_" .. dir.name]()
+    return
+  end
+  vim.cmd("wincmd " .. dir.vim)
 end
 
 function M.resize(key)
   local dir = direction(key)
-  resize_backend["resize_" .. dir.name]()
+  local backend = resize_backend()
+  if backend then
+    backend["resize_" .. dir.name]()
+    return
+  end
+  if dir.vim == "h" then
+    vim.cmd("vertical resize -3")
+  elseif dir.vim == "l" then
+    vim.cmd("vertical resize +3")
+  elseif dir.vim == "k" then
+    vim.cmd("resize -3")
+  else
+    vim.cmd("resize +3")
+  end
 end
 
 function M.swap(key)
   local dir = direction(key)
-  if not in_herdr then
-    move_backend["swap_buf_" .. dir.name]()
+  local backend = move_backend()
+  if backend then
+    backend["swap_buf_" .. dir.name]()
     return
   end
 
