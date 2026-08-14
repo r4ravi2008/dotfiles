@@ -590,6 +590,26 @@ _fallback_plannotator() {
 	return 1
 }
 
+# Disable public share links (share.plannotator.ai / paste short links).
+configure_plannotator_local_only() {
+	local dir="${PLANNOTATOR_DATA_DIR:-$HOME/.plannotator}"
+	local cfg="$dir/config.json"
+	mkdir -p "$dir"
+	if [[ -s "$cfg" ]] && command -v jq >/dev/null 2>&1; then
+		local tmp
+		tmp="$(mktemp)"
+		if jq '.share = "disabled"' "$cfg" > "$tmp"; then
+			mv "$tmp" "$cfg"
+		else
+			rm -f "$tmp"
+			printf '%s\n' '{"share":"disabled"}' > "$cfg"
+		fi
+	else
+		printf '%s\n' '{"share":"disabled"}' > "$cfg"
+	fi
+	log_success "Plannotator sharing disabled (local-only)"
+}
+
 _fallback_aws() {
 	if [[ "$(uname)" == "Darwin" ]]; then
 		log_info "Installing AWS CLI via official macOS installer..."
@@ -1084,6 +1104,7 @@ setup_ai_agents() {
 	fi
 
 	_install_matt_pocock_skills || true
+	configure_plannotator_local_only || true
 
 	log_success "AI agent configurations set up"
 }

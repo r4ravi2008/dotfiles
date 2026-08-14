@@ -13,7 +13,14 @@ fi
 
 [[ -r "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 
-# Plannotator remote UI (CWS / SSH). Default remote port is 19432.
+# Never upload plans to share.plannotator.ai (or auto-create public short links).
+export PLANNOTATOR_SHARE=disabled
+# Keep URL annotation on-box; do not send pages through Jina Reader.
+export PLANNOTATOR_JINA=0
+
+# CWS / SSH: fixed local UI port so the laptop can tunnel it. This is not a
+# public share — PLANNOTATOR_SHARE=disabled hides share/import and stops the
+# remote-HTML auto short-link upload.
 if [[ -d /.cws || -n ${CWS_WORKSPACE_ID-} || -n ${CWS_USER_DOTFILES_REPO_URL-} ]] \
   || { [[ -d /workspace ]] && [[ "$(id -un 2>/dev/null || true)" == "coder" ]]; }; then
   export PLANNOTATOR_REMOTE=1
