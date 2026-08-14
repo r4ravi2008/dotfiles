@@ -79,6 +79,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
 - Personal commands: `/pr`, `/deslop`, `/jira-list`, `/audit-effect-native-impl`
 - Obsidian skills in rulesync; engineering kit is Matt Pocock's skills in `~/.agents/skills`
+- Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432`; laptop SSH forwards that port.
 
 #### Rulesync (Source of Truth)
 
@@ -101,7 +102,7 @@ The `bootstrap.sh` script:
 6. Sets up AI agent configurations (OpenCode, Cursor, Claude Code)
 7. Syncs `ai-agents/.rulesync/skills/` to `~/.agents/skills/` (shared skills for all AI coding agents)
 8. Backs up existing configs before overwriting
-9. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
+9. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack) and Plannotator (19432). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
 
 ## Development Guidelines
 

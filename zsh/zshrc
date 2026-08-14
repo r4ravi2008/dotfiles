@@ -280,14 +280,43 @@ function ask() { opencode run "$*" }
 
 # herdr --remote uses local keybindings by default and does not send
 # [[keys.command]] plugin_actions (Alt+hjkl nvim-nav). Run those on the server.
+#
+# Dedicated CWS tunnels, same idea as `ssh -nN -f host`.
+# Do not reuse "mux exists" as "forwards exist": herdr --remote starts with a
+# remote command, and OpenSSH then sets ClearAllForwardings on that master.
+_herdr_ensure_cws_forwards() {
+  local host=${1#ssh://}
+  host=${host##*@}
+  host=${host%%[:/]*}
+  [[ $host == cws.* ]] || return 0
+  if lsof -nP -iTCP:8787 -sTCP:LISTEN 2>/dev/null | grep -q '127.0.0.1:8787'; then
+    lsof -nP -iTCP:8787 -sTCP:LISTEN 2>/dev/null | grep '127.0.0.1:8787' | grep -q ssh && return 0
+  fi
+  ssh -fN -n -o ControlMaster=no -o ControlPath=none "$host"
+}
+
 herdr() {
-  local has_remote=0 has_kb=0 arg
+  local has_remote=0 has_kb=0 take_remote=0 arg remote_target=""
   for arg in "$@"; do
+    if (( take_remote )); then
+      remote_target=$arg
+      take_remote=0
+    fi
     case "$arg" in
-    --remote|--remote=*) has_remote=1 ;;
+    --remote)
+      has_remote=1
+      take_remote=1
+      ;;
+    --remote=*)
+      has_remote=1
+      remote_target=${arg#--remote=}
+      ;;
     --remote-keybindings|--remote-keybindings=*) has_kb=1 ;;
     esac
   done
+  if (( has_remote )) && [[ -n $remote_target ]]; then
+    _herdr_ensure_cws_forwards "$remote_target"
+  fi
   if (( has_remote && ! has_kb )); then
     command herdr --remote-keybindings server "$@"
   else

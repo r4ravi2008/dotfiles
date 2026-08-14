@@ -11,6 +11,11 @@
       "label": "Slack MCP OAuth callback",
       "onAutoForward": "silent",
       "protocol": "http"
+    },
+    "19432": {
+      "label": "Plannotator",
+      "onAutoForward": "silent",
+      "protocol": "http"
     }
   },
   "remote.SSH.defaultForwardedPorts": [
@@ -23,6 +28,11 @@
       "localPort": 3118,
       "name": "Slack MCP OAuth",
       "remotePort": 3118
+    },
+    {
+      "localPort": 19432,
+      "name": "Plannotator",
+      "remotePort": 19432
     }
   ]
 }

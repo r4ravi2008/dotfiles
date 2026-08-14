@@ -12,3 +12,10 @@ elif [[ -S "${TMPDIR:-/tmp}podman/podman-machine-default-api.sock" ]]; then
 fi
 
 [[ -r "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
+# Plannotator remote UI (CWS / SSH). Default remote port is 19432.
+if [[ -d /.cws || -n ${CWS_WORKSPACE_ID-} || -n ${CWS_USER_DOTFILES_REPO_URL-} ]] \
+  || { [[ -d /workspace ]] && [[ "$(id -un 2>/dev/null || true)" == "coder" ]]; }; then
+  export PLANNOTATOR_REMOTE=1
+  export PLANNOTATOR_PORT="${PLANNOTATOR_PORT:-19432}"
+fi

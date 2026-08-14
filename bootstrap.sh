@@ -95,7 +95,7 @@ merge_json_settings() {
 }
 
 # Laptop: Include Host cws.* LocalForwards so herdr --remote / ssh / Desktop App
-# tunnel Atlassian (8787) and Slack (3118) OAuth callbacks without a manual ssh -L.
+# tunnel Atlassian (8787), Slack (3118), and Plannotator (19432) without a manual ssh -L.
 ensure_cws_mcp_ssh_forwards() {
 	local snippet="$DOTFILES_DIR/ssh/cws-mcp-forwards.conf"
 	local ssh_config="$HOME/.ssh/config"
@@ -115,7 +115,7 @@ ensure_cws_mcp_ssh_forwards() {
 	local tmp
 	tmp="$(mktemp)"
 	{
-		echo "# dotfiles: CWS MCP OAuth callback forwards (8787 Atlassian, 3118 Slack)"
+		echo "# dotfiles: CWS forwards (8787 Atlassian, 3118 Slack, 19432 Plannotator)"
 		echo "$include_line"
 		echo ""
 		[[ -f "$ssh_config" ]] && cat "$ssh_config"
@@ -384,6 +384,86 @@ _fallback_open_computer_use() {
 		fi
 	fi
 	log_warn "open-computer-use install finished but binary not found on PATH"
+	return 1
+}
+
+_ensure_npm() {
+	if command -v npm >/dev/null 2>&1 && command -v npx >/dev/null 2>&1; then
+		return 0
+	fi
+	local nvm_bin="/usr/local/share/nvm/current/bin"
+	if [[ -x "$nvm_bin/npm" ]]; then
+		export PATH="$nvm_bin:$PATH"
+	elif [[ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]]; then
+		# shellcheck disable=SC1091
+		. "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+	fi
+	command -v npm >/dev/null 2>&1 && command -v npx >/dev/null 2>&1
+}
+
+_run_with_timeout() {
+	local secs="$1"
+	shift
+	if command -v timeout >/dev/null 2>&1; then
+		timeout "$secs" "$@"
+	else
+		"$@"
+	fi
+}
+
+_install_global_skills_pkg() {
+	local pkg="$1"
+	if ! _ensure_npm; then
+		log_warn "npx not found; skip skills for $pkg"
+		return 1
+	fi
+	log_info "Installing agent skills from $pkg (global, all agents)"
+	# Bound the wait so a hung skills CLI cannot stall CWS workspace create.
+	if _run_with_timeout 180 npx --yes skills add "$pkg" --global --yes --skill '*' --agent '*'; then
+		log_success "Installed skills from $pkg"
+	else
+		log_warn "Could not install skills from $pkg"
+		return 1
+	fi
+}
+
+_fallback_hunk() {
+	export PATH="$HOME/.local/bin:$PATH"
+	_ensure_npm || true
+	if command -v brew >/dev/null 2>&1; then
+		log_info "Installing hunk via Homebrew (modem-dev/tap)..."
+		brew tap modem-dev/tap >/dev/null 2>&1 || true
+		if brew install modem-dev/tap/hunk; then
+			log_success "Installed hunk"
+			return 0
+		fi
+	fi
+	if command -v npm >/dev/null 2>&1; then
+		log_info "Installing hunk via npm (hunkdiff)..."
+		if npm install -g hunkdiff; then
+			export PATH="$(npm root -g 2>/dev/null)/../bin:$HOME/.local/bin:$PATH"
+			hash -r 2>/dev/null || true
+			if command -v hunk >/dev/null 2>&1; then
+				log_success "Installed hunk"
+				return 0
+			fi
+		fi
+	fi
+	log_warn "hunk install failed. See https://github.com/modem-dev/hunk"
+	return 1
+}
+
+_fallback_plannotator() {
+	export PATH="$HOME/.local/bin:$PATH"
+	log_info "Installing plannotator (core skills + extras)..."
+	if curl -fsSL https://plannotator.ai/install.sh | bash -s -- --non-interactive --extras; then
+		hash -r 2>/dev/null || true
+		if command -v plannotator >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/plannotator" ]]; then
+			log_success "Installed plannotator"
+			return 0
+		fi
+	fi
+	log_warn "plannotator installer finished but binary not found on PATH"
 	return 1
 }
 
@@ -870,6 +950,14 @@ setup_ai_agents() {
 		else
 			log_info "OpenCode plugin dependencies already up-to-date"
 		fi
+	fi
+
+	# Hunk + Plannotator skills (extras are opt-in in the Plannotator installer).
+	if command -v hunk >/dev/null 2>&1; then
+		_install_global_skills_pkg "modem-dev/hunk" || true
+	fi
+	if command -v plannotator >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/plannotator" ]]; then
+		_install_global_skills_pkg "backnotprop/plannotator/apps/skills/extra" || true
 	fi
 
 	log_success "AI agent configurations set up"

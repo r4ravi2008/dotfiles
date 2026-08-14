@@ -62,10 +62,10 @@ SSH host aliases are written on the **laptop** by the CWS CLI, not inside the wo
 cws login
 cws config-ssh
 ssh coder@cws.<workspace-name>          # confirm SSH first
-herdr --remote coder@cws.<workspace-name>
+herdr --remote cws.<workspace-name>
 ```
 
-If `Host cws.<name>` already sets `User coder`, `herdr --remote cws.<name>` is enough. Detach with `ctrl+b q`.
+If `Host cws.<name>` already sets `User coder`, `herdr --remote cws.<name>` is enough. The zsh `herdr` wrapper opens the same SSH mux (and `LocalForward`s) as `ssh` before attaching. Detach with `ctrl+b q`.
 
 CWS profile skips Ghostty, skhd, Podman, AWS CLI, and Rust (the image already has Docker and awscli). Interactive Bash `exec`s zsh via `.bash_aliases` unless `CWS_KEEP_BASH=1`.
 
@@ -94,8 +94,8 @@ Notes:
 - `herdr/`: tmux-aligned Herdr keys and the Neovim bridge action bindings
 - `opencode/`: OpenCode app config, custom plugins, and slash commands
 - `ai-agents/`: rulesync inputs + generated outputs for AI coding tools
-- `cursor/`: Cursor remote settings (MCP OAuth callback auto-forward)
-- `ssh/cws-mcp-forwards.conf`: LocalForward 8787 (Atlassian) and 3118 (Slack) on every `cws.*` host
+- `cursor/`: Cursor remote settings (MCP OAuth + Plannotator auto-forward)
+- `ssh/cws-mcp-forwards.conf`: LocalForward 8787 (Atlassian), 3118 (Slack), and 19432 (Plannotator) on every `cws.*` host
 
 ## Making changes
 
@@ -108,6 +108,7 @@ Notes:
 - Required: `git`, `zsh`, `tmux`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
 - Optional: `herdr` 0.7.0+ for agent workspaces and seamless Neovim pane navigation
+- Optional: `hunk` (diff review TUI) and `plannotator` (plan review UI, including extras: compound, setup-goal, visual-explainer)
 
 ## Uninstall / rollback
 
