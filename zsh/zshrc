@@ -278,6 +278,23 @@ function mkcd() { mkdir -p "$@" && cd "$_" }
 function commands() { awk '{a[$4]++}END{for(i in a){print a[i] " " i}}' }
 function ask() { opencode run "$*" }
 
+# herdr --remote uses local keybindings by default and does not send
+# [[keys.command]] plugin_actions (Alt+hjkl nvim-nav). Run those on the server.
+herdr() {
+  local has_remote=0 has_kb=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+    --remote|--remote=*) has_remote=1 ;;
+    --remote-keybindings|--remote-keybindings=*) has_kb=1 ;;
+    esac
+  done
+  if (( has_remote && ! has_kb )); then
+    command herdr --remote-keybindings server "$@"
+  else
+    command herdr "$@"
+  fi
+}
+
 # -----------------------------------------------------------------------------
 # 13. ALIASES
 # -----------------------------------------------------------------------------

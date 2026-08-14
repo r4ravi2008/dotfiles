@@ -47,6 +47,8 @@ toggle_sidebar = "prefix+b"
 
 # Fast Alt+hjkl nav via herdr-nvim-nav (C socket action). herdr-splits' bash
 # nav scripts fork the herdr CLI several times per keypress (~300ms); this is ~10ms.
+# These are plugin_actions: herdr --remote does not send them unless you pass
+# --remote-keybindings server (zshrc wraps herdr to do that automatically).
 [[keys.command]]
 key = "alt+h"
 type = "plugin_action"
