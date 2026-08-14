@@ -401,6 +401,14 @@ _ensure_npm() {
 	command -v npm >/dev/null 2>&1 && command -v npx >/dev/null 2>&1
 }
 
+_node_major() {
+	if ! _ensure_npm; then
+		echo 0
+		return 0
+	fi
+	node -p 'parseInt(process.versions.node, 10)' 2>/dev/null || echo 0
+}
+
 _run_with_timeout() {
 	local secs="$1"
 	shift
@@ -411,20 +419,101 @@ _run_with_timeout() {
 	fi
 }
 
+_install_skill_dirs() {
+	local src_root="$1"
+	local skill dest name
+	[[ -d "$src_root" ]] || return 1
+	while IFS= read -r skill; do
+		[[ -f "$skill/SKILL.md" ]] || continue
+		name="$(basename "$skill")"
+		for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
+			mkdir -p "$dest"
+			rm -rf "$dest/$name"
+			cp -R "$skill" "$dest/$name"
+		done
+		log_info "Installed skill $name"
+	done < <(find "$src_root" -mindepth 1 -maxdepth 1 -type d)
+}
+
+_install_skills_from_github() {
+	local repo_url="$1"
+	local sparse_path="$2"
+	local tmp
+	tmp="$(mktemp -d)"
+	log_info "Cloning skills from $repo_url ($sparse_path)"
+	if git clone --depth 1 --filter=blob:none --sparse "$repo_url" "$tmp/repo" >/dev/null 2>&1 \
+		&& git -C "$tmp/repo" sparse-checkout set "$sparse_path" >/dev/null 2>&1; then
+		if [[ -f "$tmp/repo/$sparse_path/SKILL.md" ]]; then
+			_install_skill_dirs "$(dirname "$tmp/repo/$sparse_path")"
+		else
+			_install_skill_dirs "$tmp/repo/$sparse_path"
+		fi
+		rm -rf "$tmp"
+		return 0
+	fi
+	rm -rf "$tmp"
+	return 1
+}
+
+_install_bundled_skill() {
+	local name="$1"
+	local src="$DOTFILES_DIR/ai-agents/.rulesync/skills/$name"
+	local dest
+	[[ -d "$src" ]] || return 1
+	for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
+		mkdir -p "$dest"
+		rm -rf "$dest/$name"
+		cp -R "$src" "$dest/$name"
+	done
+	log_info "Installed bundled skill $name"
+}
+
 _install_global_skills_pkg() {
 	local pkg="$1"
-	if ! _ensure_npm; then
-		log_warn "npx not found; skip skills for $pkg"
-		return 1
+
+	case "$pkg" in
+	modem-dev/hunk)
+		if _install_bundled_skill hunk-review; then
+			log_success "Installed hunk-review skill"
+			return 0
+		fi
+		;;
+	backnotprop/plannotator/apps/skills/extra)
+		local extra name ok=1
+		for extra in plannotator-compound plannotator-setup-goal plannotator-visual-explainer; do
+			_install_bundled_skill "$extra" || ok=0
+		done
+		if [[ "$ok" -eq 1 ]]; then
+			log_success "Installed Plannotator extra skills"
+			return 0
+		fi
+		;;
+	esac
+
+	local node_major
+	node_major="$(_node_major)"
+	# Current `npx skills` needs Node 20+ (uses util.styleText). CWS images ship 18.
+	if [[ "$node_major" -ge 20 ]] && _ensure_npm; then
+		log_info "Installing agent skills from $pkg (global, all agents)"
+		if _run_with_timeout 180 npx --yes skills add "$pkg" --global --yes --skill '*' --agent '*'; then
+			log_success "Installed skills from $pkg"
+			return 0
+		fi
+		log_warn "npx skills add failed for $pkg; falling back to git clone"
 	fi
-	log_info "Installing agent skills from $pkg (global, all agents)"
-	# Bound the wait so a hung skills CLI cannot stall CWS workspace create.
-	if _run_with_timeout 180 npx --yes skills add "$pkg" --global --yes --skill '*' --agent '*'; then
-		log_success "Installed skills from $pkg"
-	else
-		log_warn "Could not install skills from $pkg"
-		return 1
-	fi
+
+	case "$pkg" in
+	modem-dev/hunk)
+		_install_skills_from_github "https://github.com/modem-dev/hunk.git" "skills/hunk-review" \
+			&& log_success "Installed hunk-review skill from git" && return 0
+		;;
+	backnotprop/plannotator/apps/skills/extra)
+		_install_skills_from_github "https://github.com/backnotprop/plannotator.git" "apps/skills/extra" \
+			&& log_success "Installed Plannotator extra skills from git" && return 0
+		;;
+	esac
+	log_warn "Could not install skills from $pkg"
+	return 1
 }
 
 _fallback_hunk() {
@@ -994,7 +1083,8 @@ start_herdr_server() {
 		return
 	fi
 	mkdir -p "$HOME/.config/herdr"
-	if herdr status 2>/dev/null | grep -qi 'running'; then
+	# Do not grep for "running": "status: not running" also matches.
+	if herdr status 2>/dev/null | grep -A5 '^server:' | grep -Eq '^[[:space:]]*status: running$'; then
 		log_info "Herdr server already running"
 		return
 	fi
@@ -1003,7 +1093,7 @@ start_herdr_server() {
 	log_info "Starting Herdr headless server in $cwd"
 	(cd "$cwd" && nohup herdr server >>"$HOME/.config/herdr/server.log" 2>&1 &)
 	sleep 1
-	if herdr status 2>/dev/null | grep -qi 'running'; then
+	if herdr status 2>/dev/null | grep -A5 '^server:' | grep -Eq '^[[:space:]]*status: running$'; then
 		log_success "Herdr server running (socket ~/.config/herdr/herdr.sock)"
 	else
 		log_warn "Herdr server may still be starting; check ~/.config/herdr/server.log"
