@@ -6,9 +6,12 @@ local map = vim.api.nvim_set_keymap
 local opts = { noremap = true, silent = true }
 
 -- Disable LazyVim's default Alt+j/k move-line mappings
--- so Alt+hjkl can be used for pane/split navigation
-vim.keymap.del({ "n", "i", "v" }, "<A-j>")
-vim.keymap.del({ "n", "i", "v" }, "<A-k>")
+-- so Alt+hjkl can be used for pane/split navigation.
+-- These run on VeryLazy, after lazy=false plugins. herdr-nvim-nav binds
+-- <M-j>/<M-k> at plugin load; LazyVim then overwrites them with move-line,
+-- and this del would leave Alt+j/k unbound unless we restore the nav maps.
+pcall(vim.keymap.del, { "n", "i", "v" }, "<A-j>")
+pcall(vim.keymap.del, { "n", "i", "v" }, "<A-k>")
 
 -- smart-splits under tmux; herdr-nvim-nav (Alt move) + herdr-splits (Ctrl resize)
 -- inside a Herdr pane.
@@ -16,9 +19,22 @@ local pane_navigation = require("config.pane-navigation")
 local in_herdr = vim.env.HERDR_ENV == "1"
 
 -- Navigate between splits/panes (matches tilish Alt+hjkl).
--- Under Herdr, herdr-nvim-nav owns these maps so it can maintain the pane marker
--- and use the fast socket path at edges.
-if not in_herdr then
+-- Always re-bind after the del above. Under Herdr, re-run herdr-nvim-nav
+-- setup so the fast socket path (and pane marker) stay attached to Alt+hjkl.
+if in_herdr then
+  local ok, nav = pcall(require, "herdr-nvim-nav")
+  if ok then
+    nav.setup({
+      with_tmux = false,
+      keymaps = {
+        left = { "<M-h>" },
+        down = { "<M-j>" },
+        up = { "<M-k>" },
+        right = { "<M-l>" },
+      },
+    })
+  end
+else
   vim.keymap.set({ "n", "t" }, "<A-h>", function() pane_navigation.move("h") end, { desc = "Move to left split/pane" })
   vim.keymap.set({ "n", "t" }, "<A-j>", function() pane_navigation.move("j") end, { desc = "Move to below split/pane" })
   vim.keymap.set({ "n", "t" }, "<A-k>", function() pane_navigation.move("k") end, { desc = "Move to above split/pane" })
