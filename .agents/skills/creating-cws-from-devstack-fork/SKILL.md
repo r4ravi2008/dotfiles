@@ -2,17 +2,16 @@
 name: creating-cws-from-devstack-fork
 description: >-
   Use when creating, recreating, starting, or attaching a production Intuit
-  Cloud Workspace from a laptop using the rkommineni/devstack fork, or when
-  tempted to use IDDA, use-computer-mcp, Computer Use, cloud-workspaces/devstack,
-  kit up, Open in, or to install tools inside the workspace. Do not use from
-  inside a Cloud Workspace.
+  Cloud Workspace using the rkommineni/devstack fork, or when tempted to use
+  IDDA, use-computer-mcp, Computer Use, cloud-workspaces/devstack, kit up,
+  Open in, or to install tools inside the workspace.
 ---
 
 # Creating a CWS from the DevStack fork
 
-Laptop only. Create with the cloudworkspaces MCP. Attach with `herdr --remote` in the Shell.
+Create with the cloudworkspaces MCP. Attach with `herdr --remote` in the Shell.
 
-If `/.cws` exists, `CWS_WORKSPACE_ID` is set, or `id -un` is `coder` with `/workspace`, stop. Ask for a laptop Cursor session. Do not create, start, tag, or run `herdr --remote` from inside CWS.
+`cws.*` SSH already forwards 8787, 3118, and 19432. Do not bounce to another Cursor chat for tunnels. If you are already on the target workspace, skip attach.
 
 **REQUIRED SUB-SKILL:** Use `herdr` after attach.
 
@@ -25,7 +24,7 @@ Callers such as `developing-in-cws` pass `tags`. This skill does not read Jira o
 - Start a stopped box, or attach to an existing `cws.*` host
 - Another skill needs a fork-seeded CWS plus `herdr --remote`
 
-Skip this skill if you are already inside a Cloud Workspace, about to `kit up` a local kind DevStack, pointing at `cloud-workspaces/devstack`, or reaching for IDDA.
+Skip this skill if you are about to `kit up` a local kind DevStack, pointing at `cloud-workspaces/devstack`, or reaching for IDDA.
 
 ## Caller contract
 
@@ -37,7 +36,7 @@ If the user named a workspace, `get_workspace_by_name`, start it if Stopped, the
 
 Record `provisioned_via: cloudworkspaces-mcp` and `attached_with_herdr: true`. Leave tagged workspaces in place.
 
-## Preconditions (laptop)
+## Preconditions
 
 1. Dotfiles tip is on `cws`, not `origin`:
    `git -C ~/.dotfiles push cws HEAD:main`
@@ -50,15 +49,13 @@ Remotes, wait probes, tunnels, and the bootstrap checklist are in `reference.md`
 
 ## Workflow
 
-Run from the laptop.
-
 1. `get_user_onboarding_status`. If they are not onboarded, give the URL and wait.
 2. If there are tags, `list_workspaces` with `tagName=<primary tag>`. Prefer `gitRepoUrl` `https://github.intuit.com/rkommineni/devstack`.
    - Stopped: `start_workspace`.
    - RUNNING: reuse it. `add_workspace_tags` for any missing caller tags.
    - Missing, or no tags: `create_workspace` with that fork URL, `region` `us-west`, and caller `tags` when provided. Use the current fork if this session is already on one.
 3. Poll `get_workspace` until `RUNNING`. Confirm bootstrap with `get_workspace_info` and the wait section in `reference.md`. Record `provisioned_via: cloudworkspaces-mcp`.
-4. In the Shell:
+4. If this environment is already that workspace, skip this step. Otherwise, in the Shell:
 
    ```bash
    herdr --remote cws.<workspace-name>
@@ -82,8 +79,7 @@ If the verify checklist fails, fix `cws-dotfiles`, `git push cws HEAD:main`, and
 | "Push origin/main so CWS sees it" | CWS clones `cws-dotfiles` on GHES. `origin` is public GitHub. |
 | "Install hunk/plannotator on the box tonight" | Create-time bootstrap only. Patching the box proves nothing. |
 | "npx skills add. Node is there" | Node 18. Bundle extras in dotfiles instead. |
-| "I'm already on CWS, MCP talks to the API anyway" | Stop. Open a laptop Cursor session. |
-| "Computer Use still drives the laptop from this CWS chat" | Stop. Do not create from a `coder` shell. |
+| "Need a Mac Cursor chat for 8787" | Forwards are on every `cws.*` SSH. Stay put. |
 | "kit up / make is faster" | Local kind, not prod CWS. |
 | "Open in Cursor if herdr is slow" | Skips wrapper tunnels and remote keybindings. |
 | "run_workspace_command is attach enough" | Attach is Shell `herdr --remote`. |
@@ -103,6 +99,5 @@ Stop if any of these show up:
 - `brew` / `npm i -g` / `npx skills` inside the workspace
 - Open in Cursor
 - `cloudworkspaces-run_workspace_command` as attach
-- `/.cws` / `coder` session creating or `herdr --remote`
 - `PLANNOTATOR_SHARE` not `disabled`
 - Killing Cursor to steal port 8787

@@ -1,6 +1,6 @@
-# CWS create + attach, laptop reference
+# CWS create + attach
 
-Companion to `creating-cws-from-devstack-fork`. Laptop only. No IDDA.
+Companion to `creating-cws-from-devstack-fork`. No IDDA.
 
 ## Remotes
 
@@ -85,16 +85,15 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `commit` | `~/.cursor/skills/commit` (Jira-prefixed conventional commit) |
 | go-style-guide | `/workspace/go-style-guide` and `go-*` skills unless `DEVSTACK_SETUP_GO_STYLE_GUIDE=0` |
 | Tunnels | `ssh -G cws.devstack-<id>` lists IPv4 and `::1` LocalForwards for 8787, 3118, 19432 |
-| On CWS | absent from `~/.agents/skills` and `~/.cursor/skills` |
 
 ## OAuth callbacks
 
-Start Atlassian/Slack auth **inside the workspace**. Laptop browser hits `localhost:8787` / `3118`. If Cursor owns `::1:8787`, use `http://127.0.0.1:8787/...`.
+Start Atlassian/Slack auth inside the workspace. The browser hits `localhost:8787` / `3118` because `cws-mcp-forwards.conf` is on every `cws.*` SSH. If Cursor owns `::1:8787`, use `http://127.0.0.1:8787/...`.
 
 ## Cleanup
 
 Keep one good Running workspace. `delete_workspace` only when the user asks. Do not delete the workspace you just verified.
 
-## This skill on CWS
+## Files
 
-Canonical files live in `~/.dotfiles/.agents/skills`. Home `~/.agents/skills/<name>` (and Claude/Cursor) are symlinks to that tree. Do not invoke these skills from a Cloud Workspace.
+Canonical files live in `~/.dotfiles/.agents/skills`. Home `~/.agents/skills/<name>` (and Claude/Cursor) are symlinks to that tree.
