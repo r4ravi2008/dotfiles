@@ -54,7 +54,7 @@ npx rulesync generate
 .
 ├── .rulesync/                  # === SOURCE OF TRUTH (edit here) ===
 │   ├── commands/               #   Personal slash commands (Jira, PR, Effect, deslop)
-│   ├── skills/                 #   commit + Obsidian + use-computer-mcp + hunk/plannotator extras
+│   ├── skills/                 #   commit + force-pushing-ghes-default + Obsidian + use-computer-mcp + hunk/plannotator extras
 │   ├── mcp.json                #   MCP server definitions
 │   └── .aiignore               #   File ignore patterns
 │
@@ -63,7 +63,6 @@ npx rulesync generate
 ├── .opencode/                  # Generated: OpenCode config
 ├── .codex/                     # Generated: Codex CLI config
 ├── .agents/                    # Generated: shared agent skills (Obsidian)
-├── laptop-skills/              # Laptop-only (IDDA / herdr --remote); not installed on CWS
 │
 ├── opencode.json               # Generated: OpenCode app + MCP config
 ├── .mcp.json                   # Generated: Claude Code MCP config

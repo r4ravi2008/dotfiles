@@ -1,6 +1,6 @@
-# CWS create + attach — laptop reference
+# CWS create + attach, laptop reference
 
-Companion to `creating-cws-from-devstack-fork`. Laptop only.
+Companion to `creating-cws-from-devstack-fork`. Laptop only. No IDDA.
 
 ## Remotes
 
@@ -9,46 +9,37 @@ Companion to `creating-cws-from-devstack-fork`. Laptop only.
 | `~/.dotfiles` | `cws` → `github.intuit.com:rkommineni/cws-dotfiles.git` | `git push cws HEAD:main` | `origin` (`github.com:r4ravi2008/dotfiles`) |
 | DevStack worktree | `fork` → `github.intuit.com:rkommineni/devstack.git` | `fork/master` | `origin` (`cloud-workspaces/devstack`) |
 
-CWS create clones `CWS_USER_DOTFILES_REPO=https://github.intuit.com/rkommineni/cws-dotfiles.git` **once**. Existing workspaces do not pull new commits.
+CWS create clones `CWS_USER_DOTFILES_REPO=https://github.intuit.com/rkommineni/cws-dotfiles.git` **once** (MCP or otherwise). Existing workspaces do not pull new commits.
 
-Confirm tips before Create:
+Confirm tips before create:
 
 ```bash
 git -C ~/.dotfiles ls-remote cws refs/heads/main
 git -C <devstack-worktree> ls-remote fork refs/heads/master
 ```
 
-## IDDA Computer Use
+## cloudworkspaces MCP
 
-App: `com.wails.IntuitDeveloperDesktopApp`. Start each turn with `get_app_state`. Prefer `element_index` + `click_method: accessibility` on the URL combo.
+Tools (names may be prefixed by the client): `get_user_onboarding_status`, `list_workspaces`, `get_workspace`, `get_workspace_by_name`, `get_workspace_info`, `start_workspace`, `create_workspace`, `add_workspace_tags`, `delete_workspace`.
 
-### Create dialog
+Create args:
 
-1. Cloud Workspaces list → **Create**.
-2. Close any Shared endpoints side panel first (it steals clicks).
-3. Source: Repository URL (on).
-4. Expand **Advanced options** first if needed: **medium** (8 core / 32 GB), **us-west**.
-5. Click the Main repository combo (accessibility) so it is `expanded`.
-6. `set_value` on the combo: `https://github.intuit.com/rkommineni/devstack`.
-7. Create enables only after a full `org/repo` URL. Click **Create**.
-8. Button reads **Loading** while submitting — do not click again.
-9. List shows `devstack-<8 hex>` **Pending**, then **Running**.
+- `gitRepoUrl`: `https://github.intuit.com/rkommineni/devstack`
+- `region`: `us-west`
+- `tags`: caller list, or omit when standalone with no reuse identity
 
-`set_value` without expanding the combo often leaves `https://github.intuit.com/` and Create stays disabled. Clicking Advanced while the combo is in a bad state can dismiss the dialog and land on an existing workspace.
+`list_workspaces` `tagName` is one exact tag (the primary / first caller tag). Match `gitRepoUrl` on the fork after listing.
 
-### Details vs Open in
-
-- Open Config / logs: click the **workspace name** (left of the row).
-- **Open in** opens an editor and is not the create/verify path.
-- Delete: Config tab → **Delete workspace**.
-- Shared endpoints: Plannotator `19432` should stay **Private** (Intuit network share, not `share.plannotator.ai`).
+Do not use IDDA, Computer Use, or `use-computer-mcp` for create. `delete_workspace` only if the user asks.
 
 ## Wait
 
-1. `~/.ssh/prd.cws.devstack-<id>.conf` appears (IDDA writes it).
-2. `ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes coder@cws.devstack-<id> 'hostname'` works.
-3. `pgrep -f 'bash /home/coder/.dotfiles/bootstrap.sh'` is empty.
-4. `git -C ~/.dotfiles log -1 --oneline` on the box matches the `cws/main` tip you pushed.
+1. `get_workspace` status is `RUNNING`.
+2. `get_workspace_info` shows bootstrap complete (checked-out repos / git status).
+3. `~/.ssh/prd.cws.<name>.conf` (or equivalent `Host cws.<name>`) exists.
+4. `ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes coder@cws.<name> 'hostname'` works.
+5. `pgrep -f 'bash /home/coder/.dotfiles/bootstrap.sh'` is empty on the box.
+6. `git -C ~/.dotfiles log -1 --oneline` on the box matches the `cws/main` tip you pushed.
 
 Host block example: `Host cws.devstack-<id>`, `ProxyCommand` via `bastion.cws.cwsppdusw2.iks2.a.intuit.com`, user `coder`, key `~/.ssh/cws_id_rsa`. Laptop `Include` of `ssh/cws-mcp-forwards.conf` merges IPv4+IPv6 `LocalForward` for 8787 / 3118 / 19432 onto every `cws.*`.
 
@@ -63,7 +54,7 @@ Wrapper (`zsh/zshrc`):
 - `_herdr_ensure_cws_forwards`: if `127.0.0.1:8787` is not owned by `ssh`, run `ssh -fN -n -o ControlMaster=no -o ControlPath=none cws.devstack-<id>`.
 - Injects `--remote-keybindings server` so `herdr-nvim-nav` Alt+hjkl works.
 
-`herdr/config.toml`: `[remote] manage_ssh_config = false` so Herdr reuses the laptop ControlMaster / IDDA config.
+`herdr/config.toml`: `[remote] manage_ssh_config = false` so Herdr reuses the laptop ControlMaster / SSH config.
 
 Isolated probe (does not steal laptop 8787):
 
@@ -94,7 +85,7 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `commit` | `~/.cursor/skills/commit` (Jira-prefixed conventional commit) |
 | go-style-guide | `/workspace/go-style-guide` and `go-*` skills unless `DEVSTACK_SETUP_GO_STYLE_GUIDE=0` |
 | Tunnels | `ssh -G cws.devstack-<id>` lists IPv4 and `::1` LocalForwards for 8787, 3118, 19432 |
-| Laptop-only skill | `creating-cws-from-devstack-fork` is **absent** from `~/.agents/skills` and `~/.cursor/skills` on CWS |
+| On CWS | absent from `~/.agents/skills` and `~/.cursor/skills` |
 
 ## OAuth callbacks
 
@@ -102,8 +93,8 @@ Start Atlassian/Slack auth **inside the workspace**. Laptop browser hits `localh
 
 ## Cleanup
 
-Keep one good Running workspace. Delete extras from IDDA Config → Delete. Do not delete the workspace you just verified unless the user asks.
+Keep one good Running workspace. `delete_workspace` only when the user asks. Do not delete the workspace you just verified.
 
 ## This skill on CWS
 
-Bootstrap copies `ai-agents/laptop-skills/` only when **not** a Cloud Workspace, and removes these names from agent skill dirs on CWS. The files may exist under `~/.dotfiles/ai-agents/laptop-skills` on the box; do not invoke them there.
+Canonical files live in `~/.dotfiles/.agents/skills`. Home `~/.agents/skills/<name>` (and Claude/Cursor) are symlinks to that tree. Do not invoke these skills from a Cloud Workspace.
