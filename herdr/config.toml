@@ -10,12 +10,22 @@ detach = ["prefix+d", "alt+shift+e"]
 reload_config = "prefix+r"
 open_notification_target = "prefix+shift+o"
 
-workspace_picker = "prefix+s"
+workspace_picker = ["prefix+s", "alt+p"]
 goto = "prefix+g"
-new_workspace = "prefix+ctrl+c"
-rename_workspace = "prefix+$"
-previous_workspace = "prefix+("
-next_workspace = "prefix+)"
+# Navigate-mode bindings used by the workspace picker: j/k select workspaces;
+# h/l retain their directional pane-navigation meaning.
+navigate_workspace_up = "k"
+navigate_workspace_down = "j"
+# Tilish-style workspace layer: Alt selects/navigates; Alt+Shift mutates.
+new_workspace = ["prefix+ctrl+c", "alt+shift+n"]
+new_worktree = "alt+shift+g"
+rename_workspace = ["prefix+$", "alt+shift+w"]
+close_workspace = "alt+shift+d"
+previous_workspace = ["prefix+(", "alt+["]
+next_workspace = ["prefix+)", "alt+]"]
+# Option+Cmd+1..9 switches workspaces directly (Option+1..9 stays on tabs).
+# Note: cmd/super chords depend on terminal support (Ghostty passes unbound ones through).
+switch_workspace = ["prefix+shift+1..9", "cmd+alt+1..9"]
 
 new_tab = "prefix+c"
 rename_tab = ["prefix+comma", "alt+n"]
