@@ -1179,10 +1179,15 @@ start_herdr_server() {
 		return
 	fi
 	mkdir -p "$HOME/.config/herdr"
-	# Do not grep for "running": "status: not running" also matches.
 	if herdr status 2>/dev/null | grep -A5 '^server:' | grep -Eq '^[[:space:]]*status: running$'; then
-		log_info "Herdr server already running"
-		return
+		if is_cloud_workspace; then
+			log_info "Restarting Herdr so new panes use /workspace"
+			herdr server stop >/dev/null 2>&1 || true
+			sleep 1
+		else
+			log_info "Herdr server already running"
+			return
+		fi
 	fi
 	local cwd="${PWD:-$HOME}"
 	[[ -d /workspace ]] && cwd="/workspace"
@@ -1193,6 +1198,24 @@ start_herdr_server() {
 		log_success "Herdr server running (socket ~/.config/herdr/herdr.sock)"
 	else
 		log_warn "Herdr server may still be starting; check ~/.config/herdr/server.log"
+	fi
+}
+
+install_lazyvim_plugins() {
+	export PATH="$HOME/.local/bin:$PATH"
+	if ! command -v nvim >/dev/null 2>&1; then
+		log_warn "nvim not on PATH; skipped LazyVim plugin sync"
+		return
+	fi
+	if [[ ! -f "$HOME/.config/nvim/lua/config/lazy.lua" ]]; then
+		log_warn "Neovim config not linked; skipped LazyVim plugin sync"
+		return
+	fi
+	log_info "Installing LazyVim plugins (headless nvim)..."
+	if GIT_TERMINAL_PROMPT=0 _run_with_timeout 600 nvim --headless "+Lazy! sync" +qa; then
+		log_success "LazyVim plugins installed"
+	else
+		log_warn "LazyVim plugin sync failed or timed out; open nvim later to finish"
 	fi
 }
 
@@ -1284,6 +1307,11 @@ main() {
 	log_info "Setting up Herdr configuration..."
 	mkdir -p "$HOME/.config/herdr"
 	create_symlink "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+	if is_cloud_workspace && [[ -d /workspace ]]; then
+		rm -f "$HOME/.config/herdr/config.toml"
+		cp "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n' >>"$HOME/.config/herdr/config.toml"
+	fi
 	if command -v herdr >/dev/null 2>&1; then
 		local herdr_nav_dir="$DOTFILES_DIR/herdr/nvim-nav"
 		if [[ -d "$herdr_nav_dir" ]]; then
@@ -1356,6 +1384,9 @@ main() {
 	log_info "Setting up AI Agents configuration..."
 	setup_ai_agents
 
+	log_info "Installing LazyVim plugins..."
+	install_lazyvim_plugins
+
 	echo ""
 	echo "========================================"
 	log_success "Bootstrap complete!"
@@ -1363,7 +1394,7 @@ main() {
 	echo ""
 	log_info "Next steps:"
 	echo "  1. Restart your shell or run: source ~/.zshrc"
-	echo "  2. Open nvim to let Lazy install plugins"
+	echo "  2. nvim plugins were synced during bootstrap (open nvim if a plugin is still missing)"
 	if [[ "$DOTFILES_PROFILE" == "cws" ]]; then
 		echo "  3. On your laptop: cws login && cws config-ssh"
 		echo "  4. Attach Herdr: herdr --remote coder@cws.<workspace-name>"

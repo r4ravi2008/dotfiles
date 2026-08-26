@@ -59,6 +59,11 @@ elif [[ "$OSTYPE" == linux* ]]; then
   [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
 fi
 
+# CWS: Herdr/login shells start in $HOME. Drop interactive sessions in /workspace.
+if [[ -o interactive && -d /workspace && "$(id -un 2>/dev/null)" == coder && "$PWD" == "$HOME" ]]; then
+  cd /workspace
+fi
+
 # -----------------------------------------------------------------------------
 # 2. COMPLETION SYSTEM
 # -----------------------------------------------------------------------------
