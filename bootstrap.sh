@@ -127,26 +127,28 @@ ensure_cws_mcp_ssh_forwards() {
 
 # CWS: merge into remote IDE machine settings (written before user bootstrap).
 merge_cws_ide_machine_settings() {
-	local src="$DOTFILES_DIR/cursor/cws-remote-settings.json"
 	local dest
 	local merged=0
-
-	if [[ ! -f "$src" ]]; then
-		return
-	fi
+	local src
 
 	for dest in \
 		"$HOME/.cursor-server/data/Machine/settings.json" \
 		"$HOME/.vscode-server/data/Machine/settings.json"
 	do
-		if merge_json_settings "$dest" "$src"; then
-			log_success "Merged MCP port-forward settings into $dest"
-			merged=1
-		fi
+		for src in \
+			"$DOTFILES_DIR/cursor/cws-remote-settings.json" \
+			"$DOTFILES_DIR/cursor/cws-workspace-trust.json"
+		do
+			[[ -f "$src" ]] || continue
+			if merge_json_settings "$dest" "$src"; then
+				log_success "Merged $(basename "$src") into $dest"
+				merged=1
+			fi
+		done
 	done
 
 	if [[ "$merged" -eq 0 ]]; then
-		log_warn "Could not merge MCP port-forward settings into Cursor/VS Code machine settings"
+		log_warn "Could not merge Cursor/VS Code machine settings"
 	fi
 }
 
