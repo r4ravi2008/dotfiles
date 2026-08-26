@@ -304,19 +304,56 @@ _fallback_skhd_zig() {
 }
 
 _fallback_herdr() {
-	log_info "Installing herdr via official installer..."
-	curl -fsSL https://herdr.dev/install.sh | sh
+	local os arch asset dest tmp url
+	os="$(uname -s)"
+	arch="$(uname -m)"
+	case "$os/$arch" in
+	Linux/x86_64) asset="herdr-linux-x86_64" ;;
+	Linux/aarch64|Linux/arm64) asset="herdr-linux-aarch64" ;;
+	Darwin/arm64) asset="herdr-macos-aarch64" ;;
+	Darwin/x86_64) asset="herdr-macos-x86_64" ;;
+	*)
+		log_warn "herdr: unsupported platform ($os/$arch). Install manually."
+		return 1
+		;;
+	esac
+
+	url="https://github.com/herdrdev/herdr/releases/download/v${HERDR_PINNED_VERSION}/${asset}"
+	dest="$HOME/.local/bin/herdr"
+	tmp="$(mktemp -d)"
+	log_info "Installing herdr ${HERDR_PINNED_VERSION} from GitHub ($asset)..."
+	if ! curl -fsSL "$url" -o "$tmp/herdr"; then
+		log_warn "Failed to download $url"
+		rm -rf "$tmp"
+		return 1
+	fi
+	mkdir -p "$HOME/.local/bin"
+	chmod +x "$tmp/herdr"
+	mv "$tmp/herdr" "$dest"
+	rm -rf "$tmp"
 	export PATH="$HOME/.local/bin:$PATH"
-	if command -v herdr >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/herdr" ]]; then
-		log_success "Installed herdr"
+	hash -r 2>/dev/null || true
+	if herdr_is_pinned_version; then
+		log_success "Installed herdr ${HERDR_PINNED_VERSION} -> $dest"
 	else
-		log_warn "herdr installer finished but binary not found on PATH"
+		log_warn "herdr installed but version is not ${HERDR_PINNED_VERSION}"
 		return 1
 	fi
 }
 
+# Pin Herdr on CWS (and fallback installs) so `herdr --remote` matches the laptop.
+# Do not use https://herdr.dev/install.sh — that always fetches latest.json.
+HERDR_PINNED_VERSION="0.8.2"
+
 # LazyVim needs Neovim 0.11+. Debian's neovim package is often 0.10.x.
 NVIM_MIN_VERSION="0.11"
+
+herdr_is_pinned_version() {
+	command -v herdr >/dev/null 2>&1 || return 1
+	local ver
+	ver="$(herdr --version 2>/dev/null | sed -n 's/^herdr[[:space:]]*//p' | head -1)"
+	[[ "$ver" == "$HERDR_PINNED_VERSION" ]]
+}
 
 nvim_meets_min_version() {
 	command -v nvim >/dev/null 2>&1 || return 1
@@ -710,6 +747,8 @@ install_packages() {
 		if command -v "$cmd" >/dev/null 2>&1; then
 			if [[ "$cmd" == "nvim" ]] && ! nvim_meets_min_version; then
 				log_info "nvim is older than ${NVIM_MIN_VERSION}; will install the GitHub release"
+			elif [[ "$cmd" == "herdr" ]] && ! herdr_is_pinned_version; then
+				log_info "herdr is not ${HERDR_PINNED_VERSION}; will install the pinned GitHub release"
 			else
 				log_info "$cmd already installed"
 				continue
