@@ -77,3 +77,16 @@ end
 vim.keymap.set("n", "<leader>gl", function()
   Snacks.picker.git_log({ cwd = git_root.git() })
 end, { desc = "Git Log" })
+
+if in_herdr then
+  vim.keymap.set("x", "<leader>a", function()
+    vim.cmd('normal! "+y')
+    vim.fn.jobstart({
+      "herdr",
+      "plugin",
+      "action",
+      "invoke",
+      "annotate.capture",
+    })
+  end, { desc = "Annotate in Herdr" })
+end

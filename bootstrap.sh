@@ -1220,57 +1220,26 @@ install_herdr_github_plugin() {
 	return 1
 }
 
-plannotator_presenter_deps_ready() {
-	if ! command -v bun >/dev/null 2>&1 && [[ ! -x "$HOME/.local/bin/bun" ]]; then
-		echo "bun"
-		return 1
-	fi
-	if command -v google-chrome >/dev/null 2>&1 \
-		|| command -v chromium >/dev/null 2>&1 \
-		|| command -v chromium-browser >/dev/null 2>&1 \
-		|| [[ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]]; then
+# dleen/herdr-agents only lists claude/codex/pi. Prefer cursor when `cursor` is
+# on PATH; ctrl-a still lists every kind that kinds_available() finds.
+prefer_cursor_in_herdr_agents() {
+	local root
+	root="$(herdr plugin list --plugin dleen.herdr-agents --json 2>/dev/null \
+		| python3 -c 'import json,sys; d=json.load(sys.stdin); ps=d.get("result",{}).get("plugins") or []; print(ps[0].get("plugin_root","") if ps else "")' 2>/dev/null || true)"
+	local script="$root/herdr-agents"
+	if [[ ! -f "$script" ]]; then
 		return 0
 	fi
-	echo "chrome/chromium"
-	return 1
-}
-
-wait_herdr_plugin_action() {
-	local plugin_id="$1"
-	local action_name="$2"
-	local timeout_sec="${3:-60}"
-	local elapsed=0
-	local log
-	while (( elapsed < timeout_sec )); do
-		log="$(herdr plugin log list --plugin "$plugin_id" --limit 1 2>/dev/null || true)"
-		if grep -Eq 'succeeded' <<<"$log"; then
-			return 0
-		fi
-		if grep -Eq 'failed' <<<"$log"; then
-			return 1
-		fi
-		sleep 2
-		elapsed=$((elapsed + 2))
-	done
-	return 1
-}
-
-configure_herdr_plannotator() {
-	local missing
-	if ! missing="$(plannotator_presenter_deps_ready)"; then
-		log_warn "Skipping official.plannotator configure (missing $missing)"
+	if grep -Fq 'AGENT_KINDS = ("cursor", "claude", "codex", "pi")' "$script"; then
+		log_info "herdr-agents already prefers cursor"
 		return 0
 	fi
-	if ! herdr plugin action invoke configure --plugin official.plannotator; then
-		log_warn "Could not invoke official.plannotator configure"
-		return 0
+	if grep -Fq 'AGENT_KINDS = ("claude", "codex", "pi")' "$script"; then
+		perl -pi -e 's/AGENT_KINDS = \("claude", "codex", "pi"\)/AGENT_KINDS = ("cursor", "claude", "codex", "pi")/' "$script"
+		log_success "herdr-agents default kinds now start with cursor"
+	else
+		log_warn "herdr-agents AGENT_KINDS line changed upstream; skipped cursor patch"
 	fi
-	if wait_herdr_plugin_action official.plannotator configure 60; then
-		log_success "Configured official.plannotator presenter"
-		return 0
-	fi
-	log_warn "official.plannotator configure failed or timed out"
-	return 0
 }
 
 start_herdr_server() {
@@ -1389,6 +1358,10 @@ main() {
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux.conf.local"
 
+	log_info "Setting up ImageMagick font map (image.nvim identify)..."
+	mkdir -p "$HOME/.config/ImageMagick"
+	create_symlink "$DOTFILES_DIR/imagemagick/type.xml" "$HOME/.config/ImageMagick/type.xml"
+
 	log_info "Setting up Lazygit configuration..."
 	local lazygit_conf_dir
 	if [[ "$(uname)" == "Darwin" ]]; then
@@ -1411,7 +1384,7 @@ main() {
 	if is_cloud_workspace && [[ -d /workspace ]]; then
 		rm -f "$HOME/.config/herdr/config.toml"
 		cp "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
-		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n' >>"$HOME/.config/herdr/config.toml"
+		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n\n# Keep mouse selection so annotate.capture works over herdr --remote.\n[ui]\ncopy_on_select = false\n' >>"$HOME/.config/herdr/config.toml"
 	fi
 	if command -v herdr >/dev/null 2>&1; then
 		local herdr_nav_dir="$DOTFILES_DIR/herdr/nvim-nav"
@@ -1433,12 +1406,12 @@ main() {
 			if (cd "$herdr_minimap_dir" && bash build.sh >/dev/null 2>&1); then
 				herdr plugin uninstall herdr-pane-minimap >/dev/null 2>&1 || true
 				if herdr plugin link "$herdr_minimap_dir" >/dev/null 2>&1; then
-					log_success "Linked herdr-pane-minimap (zoom HUD)"
+					log_success "Linked herdr-pane-minimap (sidebar layout map)"
 				else
-					log_warn "Could not link herdr-pane-minimap; pane HUD unavailable"
+					log_warn "Could not link herdr-pane-minimap; sidebar layout map unavailable"
 				fi
 			else
-				log_warn "Could not build herdr-pane-minimap (need cargo); pane HUD unavailable"
+				log_warn "Could not build herdr-pane-minimap (need cargo); sidebar layout map unavailable"
 			fi
 		fi
 
@@ -1463,21 +1436,19 @@ main() {
 		fi
 
 		local herdr_agents_ref="74f8550a1008156f811b0bc8663ac251d9f3fcd6"
-		local herdr_browser_ref="ab5c60b1e15521ff4ac4a168ccd80b5b0133edc8"
-		local herdr_plannotator_ref="e10b969ea1655dbfce25d1464eef6f27c790bb79"
+		local herdr_annotate_ref="fb93a1318f960792452cef6cde72a2c4f4591241"
 		install_herdr_github_plugin dleen.herdr-agents dleen/herdr-agents \
 			"$herdr_agents_ref" \
 			"Installed Herdr agents picker" \
 			"Could not install dleen/herdr-agents; prefix+a picker unavailable" || true
-		install_herdr_github_plugin official.browser ogulcancelik/herdr-browser \
-			"$herdr_browser_ref" \
-			"Installed Herdr Browser" \
-			"Could not install ogulcancelik/herdr-browser; in-Herdr Plannotator UI unavailable" || true
-		install_herdr_github_plugin official.plannotator plannotator/herdr-plannotator \
-			"$herdr_plannotator_ref" \
-			"Installed Herdr Plannotator plugin" \
-			"Could not install plannotator/herdr-plannotator" || true
-		configure_herdr_plannotator || true
+		prefer_cursor_in_herdr_agents || true
+		# Prior bootstraps installed the Chrome presenter. Drop it.
+		herdr plugin uninstall official.plannotator >/dev/null 2>&1 || true
+		herdr plugin uninstall official.browser >/dev/null 2>&1 || true
+		install_herdr_github_plugin annotate plannotator/herdr-annotate \
+			"$herdr_annotate_ref" \
+			"Installed Herdr Annotate (plannotator-tui)" \
+			"Could not install plannotator/herdr-annotate" || true
 	else
 		log_warn "Herdr is not installed; skipped Herdr pane-navigation plugins"
 	fi

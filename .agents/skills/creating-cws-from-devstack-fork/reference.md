@@ -85,13 +85,12 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `commit` | `~/.cursor/skills/commit` (Jira-prefixed conventional commit) |
 | go-style-guide | `/workspace/go-style-guide` and `go-*` skills unless `DEVSTACK_SETUP_GO_STYLE_GUIDE=0` |
 | Tunnels | `ssh -G cws.devstack-<id>` lists IPv4 and `::1` LocalForwards for 8787, 3118, 19432 |
-| Herdr plugins | `dleen.herdr-agents` @ `74f8550a1008156f811b0bc8663ac251d9f3fcd6`; `official.browser` @ `ab5c60b1e15521ff4ac4a168ccd80b5b0133edc8`; `official.plannotator` @ `e10b969ea1655dbfce25d1464eef6f27c790bb79` (or documented skip/warn) |
+| Herdr plugins | `dleen.herdr-agents` @ `74f8550a1008156f811b0bc8663ac251d9f3fcd6`; `annotate` (`plannotator/herdr-annotate`) @ `fb93a1318f960792452cef6cde72a2c4f4591241` (or documented skip/warn). `official.browser` and `official.plannotator` absent. |
 | `herdr-pane-minimap` | plugin linked; binary `herdr-pane-minimap` exists in the plugin dir **or** bootstrap warn `Could not build herdr-pane-minimap` / `Could not link` |
 | `kitty_graphics` | `true` in `~/.config/herdr/config.toml` |
 | Agent keys | `previous_agent`/`next_agent`/`focus_agent` as above; `dleen.herdr-agents.open` on `prefix+a` |
-| Presenter deps | `bun` and Chrome/Chromium **or** bootstrap warn naming the missing one |
-| Configure | `official.plannotator` configure succeeded **or** documented skip |
-| Share after configure | `PLANNOTATOR_SHARE=disabled` and `jq -e '.share == "disabled"' ~/.plannotator/config.json` |
+| Annotate keys | `annotate.capture` `prefix+shift+a`; `annotate.open` `prefix+shift+p`; `annotate.last` `prefix+shift+y`; `copy_on_select = false` in the CWS-copied config |
+| Annotate deps | `bun` on PATH (plugin build fetches plannotator-tui) **or** bootstrap warn |
 
 ## OAuth callbacks
 

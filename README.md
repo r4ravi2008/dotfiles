@@ -33,7 +33,7 @@ After bootstrap:
 - Creates symlinks from your home directory into `~/.dotfiles/`
 - Backs up any existing files it would replace to `~/.dotfiles_backup/<timestamp>/`
 - Installs `gpakosz/.tmux` to `~/.tmux` (if missing) and links `~/.tmux.conf`
-- Links the Herdr keymap (agent previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, picker `prefix+a`), builds/links `herdr-nvim-nav` and `herdr-pane-minimap`, installs `herdr-splits`, `dleen/herdr-agents`, `ogulcancelik/herdr-browser`, and `plannotator/herdr-plannotator` when Herdr is available, and enables `kitty_graphics`
+- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate `prefix+shift+a` / `p` / `y`), builds `herdr-nvim-nav` and `herdr-pane-minimap`, and installs `herdr-splits`, `dleen/herdr-agents`, and `plannotator/herdr-annotate` when Herdr is available
 - Installs zsh plugin repos (autosuggestions + syntax-highlighting) into the oh-my-zsh custom plugin dir
 - Sets up OpenCode config and plugin directories under `~/.config/opencode/`
 - Links rulesync-generated AI agent outputs when present (OpenCode MCP config + `~/AGENTS.md`)
@@ -107,9 +107,9 @@ Notes:
 
 - Required: `git`, `zsh`, `tmux`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
-- Optional: `herdr` 0.7.0+ for agent workspaces and seamless Neovim pane navigation
-- Optional: `hunk` (diff review TUI) and `plannotator` (plan review UI, extras, sharing disabled)
-- CWS/bootstrap may install Chromium and Bun so the Herdr Plannotator presenter can `configure`; share stays disabled; 19432 remains the laptop tunnel
+- Optional: `herdr` 0.8.0+ for agent workspaces and Neovim pane navigation
+- Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share.
+- Bootstrap installs Bun so `plannotator/herdr-annotate` can fetch plannotator-tui. `plannotator annotate` still opens a browser.
 - Bootstrap also installs [Matt Pocock's skills](https://github.com/mattpocock/skills) (engineering + productivity) into `~/.agents/skills`
 
 ## Uninstall / rollback

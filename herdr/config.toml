@@ -117,12 +117,64 @@ type = "plugin_action"
 command = "dleen.herdr-agents.open"
 description = "pick an agent"
 
+# annotate remaps: prefix+a is the agent picker, prefix+o cycles panes,
+# prefix+shift+o opens notifications.
+[[keys.command]]
+key = "prefix+shift+a"
+type = "plugin_action"
+command = "annotate.capture"
+description = "annotate selected terminal text"
+
+[[keys.command]]
+key = "prefix+shift+c"
+type = "plugin_action"
+command = "annotate.copy-context"
+description = "copy annotations as context"
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "annotate.manage"
+description = "manage annotations"
+
+[[keys.command]]
+key = "prefix+shift+p"
+type = "plugin_action"
+command = "annotate.open"
+description = "review documents in this folder"
+
+[[keys.command]]
+key = "prefix+shift+y"
+type = "plugin_action"
+command = "annotate.last"
+description = "review the agent's last reply"
+
 [theme]
 name = "tokyo-night"
 auto_switch = false
 
+# Kitty graphics still available for other plugins. herdr-pane-minimap now
+# draws in the Spaces sidebar via workspace metadata tokens ($minimap*).
+# Plugin is linked from ~/.dotfiles/herdr/pane-minimap; the watcher starts on
+# server restore. After a live `plugin link`, run that plugin's startup.sh once
+# (or restart the Herdr server) so the map appears without a reboot.
 [experimental]
 kitty_graphics = true
+
+# Extra Spaces rows for the pane layout map. Empty $minimap* tokens hide, so
+# only the focused workspace grows when the tab has two or more panes.
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace"],
+  ["branch", "git_status"],
+  [{ token = "$minimap_title", dim = true, fg = "#565f89" }],
+  [{ token = "$minimap0", fg = "#a9b1d6" }],
+  [{ token = "$minimap1", fg = "#a9b1d6" }],
+  [{ token = "$minimap2", fg = "#a9b1d6" }],
+  [{ token = "$minimap3", fg = "#a9b1d6" }],
+  [{ token = "$minimap4", fg = "#a9b1d6" }],
+  [{ token = "$minimap5", fg = "#a9b1d6" }],
+]
 
 # Share the laptop's OpenSSH ControlMaster (IDDA / `ssh cws.*`) so CWS
 # LocalForward and RemoteForward apply. Herdr's default private control
@@ -130,3 +182,6 @@ kitty_graphics = true
 # ClearAllForwardings — the tunnels from `prd.cws.*.conf` never come up.
 [remote]
 manage_ssh_config = false
+
+[ui]
+agent_panel_sort = "spaces"
