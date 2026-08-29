@@ -173,6 +173,53 @@ impl Client {
         }
         Ok(())
     }
+
+    pub fn plugin_pane_open(
+        &self,
+        snapshot_json: &str,
+    ) -> std::io::Result<String> {
+        let result = self.rpc(
+            "plugin.pane.open",
+            serde_json::json!({
+                "plugin_id": "herdr-pane-minimap",
+                "entrypoint": "map",
+                "placement": "popup",
+                "width": 52,
+                "height": 24,
+                "focus": true,
+                "env": {
+                    "HERDR_MINIMAP_SNAPSHOT": snapshot_json
+                }
+            }),
+        )?;
+        plugin_open_pane_id(&result)
+    }
+
+    pub fn plugin_pane_close(&self, pane_id: &str) -> std::io::Result<()> {
+        let result = self.rpc(
+            "plugin.pane.close",
+            serde_json::json!({ "pane_id": pane_id }),
+        )?;
+        if result.get("code").is_some() {
+            return Err(std::io::Error::other(result.to_string()));
+        }
+        Ok(())
+    }
+}
+
+fn plugin_open_pane_id(result: &serde_json::Value) -> std::io::Result<String> {
+    if result.get("code").is_some() {
+        return Err(std::io::Error::other(result.to_string()));
+    }
+    if let Some(id) = result.pointer("/pane/pane_id").and_then(|v| v.as_str()) {
+        return Ok(id.to_string());
+    }
+    if result.get("type").and_then(|v| v.as_str()) == Some("ok") || result.is_null() {
+        return Ok(String::new());
+    }
+    Err(std::io::Error::other(format!(
+        "plugin.pane.open missing pane_id: {result}"
+    )))
 }
 
 pub const METADATA_SOURCE: &str = "plugin:herdr-pane-minimap";
@@ -346,5 +393,13 @@ mod tests {
             .expect("parse data snapshot");
         assert_eq!(snap.panes.len(), 2);
         assert_eq!(snap.tab_id, "w1:t1");
+    }
+
+    #[test]
+    fn plugin_open_accepts_type_ok_without_pane_id() {
+        let result = serde_json::json!({"type": "ok"});
+        assert_eq!(plugin_open_pane_id(&result).expect("ok"), "");
+        let with_id = serde_json::json!({"pane": {"pane_id": "w1:p9"}});
+        assert_eq!(plugin_open_pane_id(&with_id).expect("id"), "w1:p9");
     }
 }

@@ -1,11 +1,12 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_GRID_COLS: i32 = 16;
-pub const DEFAULT_GRID_ROWS: i32 = 10;
+// Match tmux/pane-minimap-rs CANVAS_W / CANVAS_H.
+pub const DEFAULT_GRID_COLS: i32 = 46;
+pub const DEFAULT_GRID_ROWS: i32 = 18;
 pub const MIN_GRID_COLS: i32 = 8;
 pub const MIN_GRID_ROWS: i32 = 5;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Rect {
     pub x: u16,
     pub y: u16,
@@ -13,7 +14,7 @@ pub struct Rect {
     pub height: u16,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Pane {
     pub pane_id: String,
     #[serde(default)]
@@ -21,7 +22,7 @@ pub struct Pane {
     pub rect: Rect,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Snapshot {
     pub workspace_id: String,
     pub tab_id: String,
@@ -53,11 +54,6 @@ pub fn should_hide(snapshot: &Snapshot) -> bool {
     snapshot.panes.len() < 2 || host_size(snapshot).is_none() || placement_for(snapshot).is_none()
 }
 
-/// Sidebar map is independent of the focused pane's cell size.
-pub fn should_hide_sidebar(snapshot: &Snapshot) -> bool {
-    snapshot.panes.len() < 2
-}
-
 pub fn host_size(snapshot: &Snapshot) -> Option<(i32, i32)> {
     if snapshot.zoomed {
         return Some((i32::from(snapshot.area.width), i32::from(snapshot.area.height)));
@@ -84,8 +80,8 @@ pub fn placement(host_w: i32, host_h: i32) -> Option<HudPlacement> {
     if cols < MIN_GRID_COLS || rows < MIN_GRID_ROWS {
         return None;
     }
-    let viewport_col = (host_w - cols - 1).max(0) as u16;
-    let viewport_row = 1_i32.min((host_h - rows).max(0)) as u16;
+    let viewport_col = 1_u16;
+    let viewport_row = 1_u16;
     Some(HudPlacement {
         grid_cols: cols as u16,
         grid_rows: rows as u16,
@@ -96,6 +92,32 @@ pub fn placement(host_w: i32, host_h: i32) -> Option<HudPlacement> {
 
 pub fn pane_label(pane_id: &str) -> &str {
     pane_id.rsplit(':').next().unwrap_or(pane_id)
+}
+
+pub fn fingerprint(snapshot: &Snapshot) -> String {
+    let mut out = format!(
+        "{}|{}|z{}|{}x{}+{}+{}|{}",
+        snapshot.workspace_id,
+        snapshot.tab_id,
+        snapshot.zoomed,
+        snapshot.area.width,
+        snapshot.area.height,
+        snapshot.area.x,
+        snapshot.area.y,
+        snapshot.focused_pane_id
+    );
+    for pane in &snapshot.panes {
+        out.push_str(&format!(
+            "|{}:{}x{}+{}+{}:{}",
+            pane.pane_id,
+            pane.rect.width,
+            pane.rect.height,
+            pane.rect.x,
+            pane.rect.y,
+            pane.focused
+        ));
+    }
+    out
 }
 
 #[cfg(test)]
@@ -181,9 +203,9 @@ mod tests {
         };
         let snap = two_pane(true, area, left, right);
         let place = placement_for(&snap).expect("fits");
-        assert_eq!(place.grid_cols, 16);
-        assert_eq!(place.grid_rows, 10);
-        assert_eq!(place.viewport_col, 120 - 16 - 1);
+        assert_eq!(place.grid_cols, 46);
+        assert_eq!(place.grid_rows, 18);
+        assert_eq!(place.viewport_col, 1);
         assert_eq!(place.viewport_row, 1);
     }
 
@@ -209,7 +231,17 @@ mod tests {
         };
         let snap = two_pane(false, area, left, right);
         let place = placement_for(&snap).expect("fits");
-        assert_eq!(place.viewport_col, 60 - 16 - 1);
+        assert_eq!(place.viewport_col, 1);
+        assert_eq!(place.viewport_row, 1);
+    }
+
+    #[test]
+    fn placement_anchors_top_left_with_one_cell_margin() {
+        let place = placement(120, 40).expect("host fits default grid");
+        assert_eq!(place.viewport_col, 1);
+        assert_eq!(place.viewport_row, 1);
+        assert_eq!(place.grid_cols, 46);
+        assert_eq!(place.grid_rows, 18);
     }
 
     #[test]
@@ -219,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn sidebar_still_shows_when_focused_host_too_small_for_overlay() {
+    fn hides_overlay_when_focused_host_too_small() {
         let area = Rect {
             x: 0,
             y: 0,
@@ -240,7 +272,6 @@ mod tests {
         };
         let snap = two_pane(false, area, left, right);
         assert!(should_hide(&snap));
-        assert!(!should_hide_sidebar(&snap));
     }
 
     #[test]

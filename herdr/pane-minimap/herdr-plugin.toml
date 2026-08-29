@@ -2,7 +2,7 @@ id = "herdr-pane-minimap"
 name = "Pane Minimap"
 version = "0.1.0"
 min_herdr_version = "0.8.0"
-description = "Always-on pane layout map in the Spaces sidebar"
+description = "Tmux-style pane layout popup while navigating zoomed splits"
 platforms = ["macos", "linux"]
 
 [[build]]
@@ -12,3 +12,12 @@ platforms = ["macos", "linux"]
 [[startup]]
 command = ["bash", "startup.sh"]
 platforms = ["macos", "linux"]
+
+[[panes]]
+id = "map"
+title = "Pane Layout"
+placement = "popup"
+width = 52
+height = 24
+platforms = ["macos", "linux"]
+command = ["./herdr-pane-minimap", "flash"]
