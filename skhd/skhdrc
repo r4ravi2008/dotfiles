@@ -22,11 +22,14 @@
 # Application Launchers
 # -----------------------------------------------------------------------------
 
-# Open terminal (Kitty)
-ctrl - 0 : open -a /Applications/Ghostty.app
+# Open Slack
+ctrl - 8 : open -a /Applications/Slack.app
 
 # Open browser (Google Chrome)
-ctrl - u : open -a /Applications/Google\ Chrome.app
+ctrl - 9 : open -a /Applications/Google\ Chrome.app
+
+# Open terminal (Ghostty)
+ctrl - 0 : open -a /Applications/Ghostty.app
 
 # -----------------------------------------------------------------------------
 # Example: Additional shortcuts (commented out)
