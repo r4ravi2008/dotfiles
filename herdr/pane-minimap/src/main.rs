@@ -141,6 +141,7 @@ fn watch() -> std::io::Result<()> {
         match Client::connect() {
             Ok(client) => {
                 if let Ok(snap) = client.pane_layout() {
+                    state.focused_tab = snap.tab_id.clone();
                     apply(&client, &mut state, &snap);
                     match herdr::subscribe_stream() {
                         Ok(mut reader) => {
