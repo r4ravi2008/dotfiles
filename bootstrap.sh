@@ -1255,69 +1255,10 @@ wait_herdr_plugin_action() {
 	return 1
 }
 
-# dleen/herdr-agents only lists claude/codex/pi. Prefer cursor when `cursor` is
-# on PATH; ctrl-a still lists every kind that kinds_available() finds.
-prefer_cursor_in_herdr_agents() {
-	local root
-	root="$(herdr plugin list --plugin dleen.herdr-agents --json 2>/dev/null \
-		| python3 -c 'import json,sys; d=json.load(sys.stdin); ps=d.get("result",{}).get("plugins") or []; print(ps[0].get("plugin_root","") if ps else "")' 2>/dev/null || true)"
-	local script="$root/herdr-agents"
-	if [[ ! -f "$script" ]]; then
-		return 0
-	fi
-	if grep -Fq 'AGENT_KINDS = ("cursor", "claude", "codex", "pi")' "$script"; then
-		log_info "herdr-agents already prefers cursor"
-		return 0
-	fi
-	if grep -Fq 'AGENT_KINDS = ("claude", "codex", "pi")' "$script"; then
-		perl -pi -e 's/AGENT_KINDS = \("claude", "codex", "pi"\)/AGENT_KINDS = ("cursor", "claude", "codex", "pi")/' "$script"
-		log_success "herdr-agents default kinds now start with cursor"
-	else
-		log_warn "herdr-agents AGENT_KINDS line changed upstream; skipped cursor patch"
-	fi
-}
-
-herdr_plugin_installed() {
-	local plugin_id="$1"
-	local state
-	state="$(herdr plugin list --plugin "$plugin_id" --json 2>/dev/null || true)"
-	grep -Eq '"plugin_id"[[:space:]]*:[[:space:]]*"'"$plugin_id"'"' <<<"$state"
-}
-
-herdr_server_running() {
-	herdr status 2>/dev/null | grep -A5 '^server:' | grep -Eq '^[[:space:]]*status: running$'
-}
-
-wait_herdr_server() {
-	local timeout_sec="${1:-20}"
-	local elapsed=0
-	while (( elapsed < timeout_sec )); do
-		if herdr_server_running; then
-			return 0
-		fi
-		sleep 1
-		elapsed=$((elapsed + 1))
-	done
-	return 1
-}
-
 configure_herdr_plannotator() {
-	export PATH="$HOME/.local/bin:$PATH"
-	if ! herdr_plugin_installed official.plannotator; then
-		log_warn "Skipping official.plannotator configure (plugin not installed)"
-		return 0
-	fi
-	if ! herdr_plugin_installed official.browser; then
-		log_warn "Skipping official.plannotator configure (official.browser not installed)"
-		return 0
-	fi
 	local missing
 	if ! missing="$(plannotator_presenter_deps_ready)"; then
 		log_warn "Skipping official.plannotator configure (missing $missing)"
-		return 0
-	fi
-	if ! wait_herdr_server 20; then
-		log_warn "Skipping official.plannotator configure (Herdr server not running)"
 		return 0
 	fi
 	if ! herdr plugin action invoke configure --plugin official.plannotator; then
@@ -1448,10 +1389,6 @@ main() {
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
 	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux.conf.local"
 
-	log_info "Setting up ImageMagick font map (image.nvim identify)..."
-	mkdir -p "$HOME/.config/ImageMagick"
-	create_symlink "$DOTFILES_DIR/imagemagick/type.xml" "$HOME/.config/ImageMagick/type.xml"
-
 	log_info "Setting up Lazygit configuration..."
 	local lazygit_conf_dir
 	if [[ "$(uname)" == "Darwin" ]]; then
@@ -1526,13 +1463,12 @@ main() {
 		fi
 
 		local herdr_agents_ref="74f8550a1008156f811b0bc8663ac251d9f3fcd6"
-		local herdr_browser_ref="be6888b71cf4eb5939ee79a746bd1a1c22ade046"
+		local herdr_browser_ref="ab5c60b1e15521ff4ac4a168ccd80b5b0133edc8"
 		local herdr_plannotator_ref="e10b969ea1655dbfce25d1464eef6f27c790bb79"
 		install_herdr_github_plugin dleen.herdr-agents dleen/herdr-agents \
 			"$herdr_agents_ref" \
 			"Installed Herdr agents picker" \
 			"Could not install dleen/herdr-agents; prefix+a picker unavailable" || true
-		prefer_cursor_in_herdr_agents || true
 		install_herdr_github_plugin official.browser ogulcancelik/herdr-browser \
 			"$herdr_browser_ref" \
 			"Installed Herdr Browser" \
@@ -1541,6 +1477,7 @@ main() {
 			"$herdr_plannotator_ref" \
 			"Installed Herdr Plannotator plugin" \
 			"Could not install plannotator/herdr-plannotator" || true
+		configure_herdr_plannotator || true
 	else
 		log_warn "Herdr is not installed; skipped Herdr pane-navigation plugins"
 	fi
@@ -1574,12 +1511,6 @@ main() {
 
 		log_info "Setting up tmux pane minimap..."
 		setup_tmux_pane_minimap
-	fi
-
-	# Presenter needs a live Herdr server (CWS starts it above). Share-disabled
-	# runs later in setup_ai_agents so configure cannot leave sharing on.
-	if command -v herdr >/dev/null 2>&1; then
-		configure_herdr_plannotator || true
 	fi
 
 	log_info "Setting up AI Agents configuration..."
