@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<typemap>
+  <!-- Homebrew ImageMagick ships an empty type.xml, so identify/annotate
+       fail with: unable to read font '' (image.nvim markdown previews). -->
+  <type
+    name="Arial"
+    family="Arial"
+    glyphs="/System/Library/Fonts/Supplemental/Arial.ttf"
+    />
+  <type
+    name="DejaVu-Sans"
+    family="DejaVu Sans"
+    glyphs="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    />
+</typemap>
