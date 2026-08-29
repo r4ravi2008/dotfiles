@@ -1193,6 +1193,86 @@ resolve_dotfiles_dir() {
 	fi
 }
 
+herdr_plugin_at_ref() {
+	local plugin_id="$1"
+	local sha="$2"
+	local state
+	state="$(herdr plugin list --plugin "$plugin_id" --json 2>/dev/null || true)"
+	grep -Eq '"plugin_id"[[:space:]]*:[[:space:]]*"'"$plugin_id"'"' <<<"$state" \
+		&& grep -Eq '"resolved_commit"[[:space:]]*:[[:space:]]*"'"$sha"'"' <<<"$state"
+}
+
+install_herdr_github_plugin() {
+	local plugin_id="$1"
+	local repo="$2"
+	local sha="$3"
+	local ok_msg="$4"
+	local warn_msg="$5"
+	if herdr_plugin_at_ref "$plugin_id" "$sha"; then
+		log_info "Herdr plugin $plugin_id already installed at $sha"
+		return 0
+	fi
+	if herdr plugin install "$repo" --ref "$sha" --yes; then
+		log_success "$ok_msg"
+		return 0
+	fi
+	log_warn "$warn_msg"
+	return 1
+}
+
+plannotator_presenter_deps_ready() {
+	if ! command -v bun >/dev/null 2>&1 && [[ ! -x "$HOME/.local/bin/bun" ]]; then
+		echo "bun"
+		return 1
+	fi
+	if command -v google-chrome >/dev/null 2>&1 \
+		|| command -v chromium >/dev/null 2>&1 \
+		|| command -v chromium-browser >/dev/null 2>&1 \
+		|| [[ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]]; then
+		return 0
+	fi
+	echo "chrome/chromium"
+	return 1
+}
+
+wait_herdr_plugin_action() {
+	local plugin_id="$1"
+	local action_name="$2"
+	local timeout_sec="${3:-60}"
+	local elapsed=0
+	local log
+	while (( elapsed < timeout_sec )); do
+		log="$(herdr plugin log list --plugin "$plugin_id" --limit 1 2>/dev/null || true)"
+		if grep -Eq 'succeeded' <<<"$log"; then
+			return 0
+		fi
+		if grep -Eq 'failed' <<<"$log"; then
+			return 1
+		fi
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+	return 1
+}
+
+configure_herdr_plannotator() {
+	local missing
+	if ! missing="$(plannotator_presenter_deps_ready)"; then
+		log_warn "Skipping official.plannotator configure (missing $missing)"
+		return 0
+	fi
+	if ! herdr plugin action invoke configure --plugin official.plannotator; then
+		log_warn "Could not invoke official.plannotator configure"
+		return 0
+	fi
+	if wait_herdr_plugin_action official.plannotator configure 60; then
+		log_success "Configured official.plannotator presenter"
+		return 0
+	fi
+	log_warn "official.plannotator configure failed or timed out"
+	return 0
+}
+
 start_herdr_server() {
 	export PATH="$HOME/.local/bin:$PATH"
 	if ! command -v herdr >/dev/null 2>&1; then
@@ -1367,6 +1447,23 @@ main() {
 			cp "$DOTFILES_DIR/herdr/herdr-splits.conf" "$herdr_splits_conf_dir/herdr-splits.conf"
 			log_info "Seeded herdr-splits.conf (Ctrl=resize)"
 		fi
+
+		local herdr_agents_ref="74f8550a1008156f811b0bc8663ac251d9f3fcd6"
+		local herdr_browser_ref="ab5c60b1e15521ff4ac4a168ccd80b5b0133edc8"
+		local herdr_plannotator_ref="e10b969ea1655dbfce25d1464eef6f27c790bb79"
+		install_herdr_github_plugin dleen.herdr-agents dleen/herdr-agents \
+			"$herdr_agents_ref" \
+			"Installed Herdr agents picker" \
+			"Could not install dleen/herdr-agents; prefix+a picker unavailable" || true
+		install_herdr_github_plugin official.browser ogulcancelik/herdr-browser \
+			"$herdr_browser_ref" \
+			"Installed Herdr Browser" \
+			"Could not install ogulcancelik/herdr-browser; in-Herdr Plannotator UI unavailable" || true
+		install_herdr_github_plugin official.plannotator plannotator/herdr-plannotator \
+			"$herdr_plannotator_ref" \
+			"Installed Herdr Plannotator plugin" \
+			"Could not install plannotator/herdr-plannotator" || true
+		configure_herdr_plannotator || true
 	else
 		log_warn "Herdr is not installed; skipped Herdr pane-navigation plugins"
 	fi
