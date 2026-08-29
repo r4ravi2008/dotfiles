@@ -34,25 +34,12 @@ Do not use IDDA, Computer Use, or `use-computer-mcp` for create. `delete_workspa
 
 ## Wait
 
-Attach as soon as these four are true. User `~/.dotfiles/bootstrap.sh` often still runs after the pod is `RUNNING`; that is not a gate for `herdr --remote`.
-
 1. `get_workspace` status is `RUNNING`.
-2. `get_workspace_info` returns checked-out repos (CWS content init, not yadm).
+2. `get_workspace_info` shows bootstrap complete (checked-out repos / git status).
 3. `~/.ssh/prd.cws.<name>.conf` (or equivalent `Host cws.<name>`) exists.
 4. `ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes coder@cws.<name> 'hostname'` works.
-
-Optional, after attach: confirm the cloned tip with `git -C ~/.dotfiles log -1 --oneline` (may still be cloning for a minute).
-
-Do **not** wait on unanchored `pgrep -f bootstrap.sh`. The remote command is `bash -l -c '…pgrep…'`, so that pattern matches the probe itself and never looks idle.
-
-To see whether yadm bootstrap is actually running:
-
-```bash
-ssh -o ClearAllForwardings=yes -o ControlMaster=no -o ControlPath=none \
-  coder@cws.<name> "pgrep -af '^bash /home/coder/.dotfiles/bootstrap.sh'" || true
-```
-
-If `herdr --remote` asks to install a matching binary and restart the remote server, bootstrap is still installing Herdr. Answer the prompts; do not poll for bootstrap exit first.
+5. `pgrep -f 'bash /home/coder/.dotfiles/bootstrap.sh'` is empty on the box.
+6. `git -C ~/.dotfiles log -1 --oneline` on the box matches the `cws/main` tip you pushed.
 
 Host block example: `Host cws.devstack-<id>`, `ProxyCommand` via `bastion.cws.cwsppdusw2.iks2.a.intuit.com`, user `coder`, key `~/.ssh/cws_id_rsa`. Laptop `Include` of `ssh/cws-mcp-forwards.conf` merges IPv4+IPv6 `LocalForward` for 8787 / 3118 / 19432 onto every `cws.*`.
 
@@ -81,7 +68,7 @@ Chrome resolves `localhost` to `::1` first. IPv4-only forwards leave Atlassian/S
 
 ## E2E checklist (bootstrap only)
 
-Run over SSH after the anchored `pgrep` above is empty. Do not install anything. Do not delay attach for this list.
+Run over SSH after bootstrap exits. Do not install anything.
 
 | Check | Expect |
 |---|---|
