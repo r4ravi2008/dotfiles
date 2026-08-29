@@ -54,7 +54,7 @@ Remotes, wait probes, tunnels, and the bootstrap checklist are in `reference.md`
    - Stopped: `start_workspace`.
    - RUNNING: reuse it. `add_workspace_tags` for any missing caller tags.
    - Missing, or no tags: `create_workspace` with that fork URL, `region` `us-west`, and caller `tags` when provided. Use the current fork if this session is already on one.
-3. Poll `get_workspace` until `RUNNING`. Confirm bootstrap with `get_workspace_info` and the wait section in `reference.md`. Record `provisioned_via: cloudworkspaces-mcp`.
+3. Poll `get_workspace` until `RUNNING`, then confirm SSH from the wait section in `reference.md` (`get_workspace_info` plus `hostname`). Do **not** wait for user `bootstrap.sh` to exit. Record `provisioned_via: cloudworkspaces-mcp`.
 4. If this environment is already that workspace, skip this step. Otherwise, in the Shell:
 
    ```bash
@@ -82,6 +82,7 @@ If the verify checklist fails, fix `cws-dotfiles`, `git push cws HEAD:main`, and
 | "Need a Mac Cursor chat for 8787" | Forwards are on every `cws.*` SSH. Stay put. |
 | "kit up / make is faster" | Local kind, not prod CWS. |
 | "Open in Cursor if herdr is slow" | Skips wrapper tunnels and remote keybindings. |
+| "Wait for pgrep bootstrap.sh before herdr --remote" | Attach as soon as SSH works. Unanchored `pgrep -f bootstrap.sh` matches the probe's own `bash -l -c` and never returns. |
 | "run_workspace_command is attach enough" | Attach is Shell `herdr --remote`. |
 | "Kill Cursor to free 8787" | Bind IPv4+IPv6 forwards. Do not kill the user's Cursor. |
 | "Enable share.plannotator.ai for the phone" | Keep `PLANNOTATOR_SHARE=disabled`. |
@@ -98,6 +99,7 @@ Stop if any of these show up:
 - `kit up`, `make` in devstack, or `ssh devstack` on port 32222
 - `brew` / `npm i -g` / `npx skills` inside the workspace
 - Open in Cursor
+- Unanchored `pgrep -f bootstrap.sh` as an attach gate
 - `cloudworkspaces-run_workspace_command` as attach
 - `PLANNOTATOR_SHARE` not `disabled`
 - Killing Cursor to steal port 8787
