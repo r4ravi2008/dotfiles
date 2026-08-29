@@ -214,6 +214,55 @@ mod tests {
     }
 
     #[test]
+    fn hides_two_pane_when_focused_host_too_small() {
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 24,
+        };
+        let left = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 24,
+        };
+        let right = Rect {
+            x: 40,
+            y: 0,
+            width: 9,
+            height: 6,
+        };
+        let snap = two_pane(false, area, left, right);
+        assert!(should_hide(&snap));
+    }
+
+    #[test]
+    fn hides_when_focused_pane_missing_from_panes() {
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 24,
+        };
+        let left = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 24,
+        };
+        let right = Rect {
+            x: 40,
+            y: 0,
+            width: 40,
+            height: 24,
+        };
+        let mut snap = two_pane(false, area, left, right);
+        snap.focused_pane_id = "w1:missing".into();
+        assert!(should_hide(&snap));
+    }
+
+    #[test]
     fn pane_label_uses_suffix() {
         assert_eq!(pane_label("w1:p3"), "p3");
         assert_eq!(pane_label("p3"), "p3");

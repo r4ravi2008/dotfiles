@@ -227,4 +227,56 @@ mod tests {
         let value = parse_rpc_line(line).expect("ok");
         assert!(value.get("layout").is_some());
     }
+
+    fn sample_snapshot_json() -> serde_json::Value {
+        serde_json::json!({
+            "workspace_id": "w1",
+            "tab_id": "w1:t1",
+            "zoomed": false,
+            "area": {"x": 0, "y": 0, "width": 80, "height": 24},
+            "focused_pane_id": "w1:p2",
+            "panes": [
+                {
+                    "pane_id": "w1:p1",
+                    "focused": false,
+                    "rect": {"x": 0, "y": 0, "width": 40, "height": 24}
+                },
+                {
+                    "pane_id": "w1:p2",
+                    "focused": true,
+                    "rect": {"x": 40, "y": 0, "width": 40, "height": 24}
+                }
+            ]
+        })
+    }
+
+    #[test]
+    fn parses_layout_updated_nested_under_data_layout() {
+        let raw = serde_json::json!({
+            "event": "layout.updated",
+            "data": {
+                "layout": sample_snapshot_json()
+            }
+        });
+        let snap = raw
+            .pointer("/data/layout")
+            .and_then(snapshot_from_layout_result)
+            .expect("parse nested layout");
+        assert_eq!(snap.panes.len(), 2);
+        assert_eq!(snap.focused_pane_id, "w1:p2");
+    }
+
+    #[test]
+    fn parses_layout_updated_snapshot_fields_at_data() {
+        let raw = serde_json::json!({
+            "event": "layout.updated",
+            "data": sample_snapshot_json()
+        });
+        let snap = raw
+            .get("data")
+            .and_then(snapshot_from_layout_result)
+            .expect("parse data snapshot");
+        assert_eq!(snap.panes.len(), 2);
+        assert_eq!(snap.tab_id, "w1:t1");
+    }
 }

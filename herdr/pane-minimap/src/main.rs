@@ -85,7 +85,13 @@ fn apply(client: &Client, state: &mut ApplyState, snapshot: &Snapshot) {
             return;
         }
     };
-    if info.cell_width_px == 0 || info.cell_height_px == 0 || !info.pane_visible {
+    if info.cell_width_px == 0 || info.cell_height_px == 0 {
+        return;
+    }
+    if !info.pane_visible {
+        if let Some(pane) = state.last_pane.take() {
+            let _ = client.graphics_clear(&pane);
+        }
         return;
     }
     let png = png_for_snapshot(
