@@ -34,12 +34,25 @@ Do not use IDDA, Computer Use, or `use-computer-mcp` for create. `delete_workspa
 
 ## Wait
 
+Attach as soon as these four are true. User `~/.dotfiles/bootstrap.sh` often still runs after the pod is `RUNNING`; that is not a gate for `herdr --remote`.
+
 1. `get_workspace` status is `RUNNING`.
-2. `get_workspace_info` shows bootstrap complete (checked-out repos / git status).
+2. `get_workspace_info` returns checked-out repos (CWS content init, not yadm).
 3. `~/.ssh/prd.cws.<name>.conf` (or equivalent `Host cws.<name>`) exists.
 4. `ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes coder@cws.<name> 'hostname'` works.
-5. `pgrep -f 'bash /home/coder/.dotfiles/bootstrap.sh'` is empty on the box.
-6. `git -C ~/.dotfiles log -1 --oneline` on the box matches the `cws/main` tip you pushed.
+
+Optional, after attach: confirm the cloned tip with `git -C ~/.dotfiles log -1 --oneline` (may still be cloning for a minute).
+
+Do **not** wait on unanchored `pgrep -f bootstrap.sh`. The remote command is `bash -l -c '…pgrep…'`, so that pattern matches the probe itself and never looks idle.
+
+To see whether yadm bootstrap is actually running:
+
+```bash
+ssh -o ClearAllForwardings=yes -o ControlMaster=no -o ControlPath=none \
+  coder@cws.<name> "pgrep -af '^bash /home/coder/.dotfiles/bootstrap.sh'" || true
+```
+
+If `herdr --remote` asks to install a matching binary and restart the remote server, bootstrap is still installing Herdr. Answer the prompts; do not poll for bootstrap exit first.
 
 Host block example: `Host cws.devstack-<id>`, `ProxyCommand` via `bastion.cws.cwsppdusw2.iks2.a.intuit.com`, user `coder`, key `~/.ssh/cws_id_rsa`. Laptop `Include` of `ssh/cws-mcp-forwards.conf` merges IPv4+IPv6 `LocalForward` for 8787 / 3118 / 19432 onto every `cws.*`.
 
@@ -68,7 +81,7 @@ Chrome resolves `localhost` to `::1` first. IPv4-only forwards leave Atlassian/S
 
 ## E2E checklist (bootstrap only)
 
-Run over SSH after bootstrap exits. Do not install anything.
+Run over SSH after the anchored `pgrep` above is empty. Do not install anything. Do not delay attach for this list.
 
 | Check | Expect |
 |---|---|
@@ -85,6 +98,12 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `commit` | `~/.cursor/skills/commit` (Jira-prefixed conventional commit) |
 | go-style-guide | `/workspace/go-style-guide` and `go-*` skills unless `DEVSTACK_SETUP_GO_STYLE_GUIDE=0` |
 | Tunnels | `ssh -G cws.devstack-<id>` lists IPv4 and `::1` LocalForwards for 8787, 3118, 19432 |
+| Herdr plugins | `dleen.herdr-agents` @ `74f8550a1008156f811b0bc8663ac251d9f3fcd6`; `official.browser` @ `ab5c60b1e15521ff4ac4a168ccd80b5b0133edc8`; `official.plannotator` @ `e10b969ea1655dbfce25d1464eef6f27c790bb79` (or documented skip/warn) |
+| `kitty_graphics` | `true` in `~/.config/herdr/config.toml` |
+| Agent keys | `previous_agent`/`next_agent`/`focus_agent` as above; `dleen.herdr-agents.open` on `prefix+a` |
+| Presenter deps | `bun` and Chrome/Chromium **or** bootstrap warn naming the missing one |
+| Configure | `official.plannotator` configure succeeded **or** documented skip |
+| Share after configure | `PLANNOTATOR_SHARE=disabled` and `jq -e '.share == "disabled"' ~/.plannotator/config.json` |
 
 ## OAuth callbacks
 

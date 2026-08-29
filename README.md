@@ -33,7 +33,7 @@ After bootstrap:
 - Creates symlinks from your home directory into `~/.dotfiles/`
 - Backs up any existing files it would replace to `~/.dotfiles_backup/<timestamp>/`
 - Installs `gpakosz/.tmux` to `~/.tmux` (if missing) and links `~/.tmux.conf`
-- Links the Herdr keymap, builds/links fast `herdr-nvim-nav` (Alt+hjkl), and installs `herdr-splits` for Ctrl resize when Herdr is available
+- Links the Herdr keymap (agent previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, picker `prefix+a`), builds/links `herdr-nvim-nav`, installs `herdr-splits`, `dleen/herdr-agents`, `ogulcancelik/herdr-browser`, and `plannotator/herdr-plannotator` when Herdr is available, and enables `kitty_graphics`
 - Installs zsh plugin repos (autosuggestions + syntax-highlighting) into the oh-my-zsh custom plugin dir
 - Sets up OpenCode config and plugin directories under `~/.config/opencode/`
 - Links rulesync-generated AI agent outputs when present (OpenCode MCP config + `~/AGENTS.md`)
@@ -109,6 +109,7 @@ Notes:
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
 - Optional: `herdr` 0.7.0+ for agent workspaces and seamless Neovim pane navigation
 - Optional: `hunk` (diff review TUI) and `plannotator` (plan review UI, extras, sharing disabled)
+- CWS/bootstrap may install Chromium and Bun so the Herdr Plannotator presenter can `configure`; share stays disabled; 19432 remains the laptop tunnel
 - Bootstrap also installs [Matt Pocock's skills](https://github.com/mattpocock/skills) (engineering + productivity) into `~/.agents/skills`
 
 ## Uninstall / rollback
