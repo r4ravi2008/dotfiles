@@ -33,7 +33,7 @@ After bootstrap:
 - Creates symlinks from your home directory into `~/.dotfiles/`
 - Backs up any existing files it would replace to `~/.dotfiles_backup/<timestamp>/`
 - Installs `gpakosz/.tmux` to `~/.tmux` (if missing) and links `~/.tmux.conf`
-- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate `prefix+shift+a` / `p` / `y`), builds `herdr-nvim-nav` and `herdr-pane-minimap`, and installs `herdr-splits`, `dleen/herdr-agents`, and `plannotator/herdr-annotate` when Herdr is available
+- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate `prefix+shift+a` / `p` / `y`), builds `herdr-nvim-nav` and `herdr-pane-minimap` (tmux-style zoomed-pane popup, not an always-on HUD), and installs `herdr-splits`, `dleen/herdr-agents`, and `plannotator/herdr-annotate` when Herdr is available
 - Installs zsh plugin repos (autosuggestions + syntax-highlighting) into the oh-my-zsh custom plugin dir
 - Sets up OpenCode config and plugin directories under `~/.config/opencode/`
 - Links rulesync-generated AI agent outputs when present (OpenCode MCP config + `~/AGENTS.md`)

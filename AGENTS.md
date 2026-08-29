@@ -83,7 +83,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - Obsidian skills in rulesync. Bootstrap installs Matt Pocock's engineering + productivity kit (`tdd`, `grill-me`, `setup-matt-pocock-skills`, …) into `~/.agents/skills`, `~/.claude/skills`, and `~/.cursor/skills` (git clone; CWS Node 18 cannot run `npx skills`).
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
 - CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+shift+p` folder, `prefix+shift+y` last reply, `prefix+shift+a` capture). Needs Bun.
-- Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (Spaces sidebar layout map). Tmux `pane-minimap` popup is unchanged.
+- Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (tmux-style popup while hopping zoomed panes). Tmux `pane-minimap` popup is unchanged.
 
 #### Rulesync (Source of Truth)
 
