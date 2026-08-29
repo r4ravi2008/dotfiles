@@ -23,6 +23,15 @@ pub fn event_name(value: &serde_json::Value) -> Option<String> {
         .map(str::to_string)
 }
 
+/// Socket events use underscores (`pane_focused`); subscribe types use dots (`pane.focused`).
+pub fn matches_event(value: &serde_json::Value, wanted: &str) -> bool {
+    let Some(name) = event_name(value) else {
+        return false;
+    };
+    let normalize = |s: &str| s.replace('_', ".");
+    normalize(&name) == normalize(wanted)
+}
+
 fn parse_rpc_line(line: &str) -> std::io::Result<serde_json::Value> {
     let value: serde_json::Value =
         serde_json::from_str(line).map_err(std::io::Error::other)?;
@@ -143,23 +152,51 @@ impl Client {
         }
         Ok(())
     }
+
+    pub fn workspace_report_tokens(
+        &self,
+        workspace_id: &str,
+        tokens: &serde_json::Map<String, serde_json::Value>,
+        seq: u64,
+    ) -> std::io::Result<()> {
+        let result = self.rpc(
+            "workspace.report_metadata",
+            serde_json::json!({
+                "workspace_id": workspace_id,
+                "source": METADATA_SOURCE,
+                "tokens": tokens,
+                "seq": seq
+            }),
+        )?;
+        if result.get("code").is_some() {
+            return Err(std::io::Error::other(result.to_string()));
+        }
+        Ok(())
+    }
 }
 
-pub fn subscribe_stream() -> std::io::Result<BufReader<UnixStream>> {
-    let path = socket_path()?;
-    let mut stream = UnixStream::connect(path)?;
-    stream.set_read_timeout(None)?;
-    let req = serde_json::json!({
+pub const METADATA_SOURCE: &str = "plugin:herdr-pane-minimap";
+
+pub fn subscribe_request() -> serde_json::Value {
+    serde_json::json!({
         "id": "minimap-sub",
         "method": "events.subscribe",
         "params": {
             "subscriptions": [
                 {"type": "layout.updated"},
                 {"type": "tab.focused"},
-                {"type": "workspace.focused"}
+                {"type": "workspace.focused"},
+                {"type": "pane.focused"}
             ]
         }
-    });
+    })
+}
+
+pub fn subscribe_stream() -> std::io::Result<BufReader<UnixStream>> {
+    let path = socket_path()?;
+    let mut stream = UnixStream::connect(path)?;
+    stream.set_read_timeout(None)?;
+    let req = subscribe_request();
     stream.write_all(req.to_string().as_bytes())?;
     stream.write_all(b"\n")?;
     Ok(BufReader::new(stream))
@@ -212,6 +249,37 @@ mod tests {
     fn reads_layout_updated_event_name() {
         let raw = serde_json::json!({"event": "layout.updated", "data": {}});
         assert_eq!(event_name(&raw).as_deref(), Some("layout.updated"));
+    }
+
+    #[test]
+    fn matches_socket_underscore_event_kinds() {
+        let pane = serde_json::json!({
+            "event": "pane_focused",
+            "data": {"type": "pane_focused", "pane_id": "w2:p1", "workspace_id": "w2"}
+        });
+        let layout = serde_json::json!({
+            "event": "layout_updated",
+            "data": {"type": "layout_updated"}
+        });
+        assert!(matches_event(&pane, "pane.focused"));
+        assert!(matches_event(&layout, "layout.updated"));
+        assert!(matches_event(&pane, "pane_focused"));
+        assert!(!matches_event(&pane, "tab.focused"));
+    }
+
+    #[test]
+    fn subscribe_includes_pane_focused() {
+        let req = subscribe_request();
+        let types: Vec<&str> = req["params"]["subscriptions"]
+            .as_array()
+            .expect("subscriptions")
+            .iter()
+            .filter_map(|s| s.get("type").and_then(|t| t.as_str()))
+            .collect();
+        assert!(types.contains(&"layout.updated"));
+        assert!(types.contains(&"pane.focused"));
+        assert!(types.contains(&"tab.focused"));
+        assert!(types.contains(&"workspace.focused"));
     }
 
     #[test]

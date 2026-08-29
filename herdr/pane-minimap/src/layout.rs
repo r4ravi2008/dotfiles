@@ -53,6 +53,11 @@ pub fn should_hide(snapshot: &Snapshot) -> bool {
     snapshot.panes.len() < 2 || host_size(snapshot).is_none() || placement_for(snapshot).is_none()
 }
 
+/// Sidebar map is independent of the focused pane's cell size.
+pub fn should_hide_sidebar(snapshot: &Snapshot) -> bool {
+    snapshot.panes.len() < 2
+}
+
 pub fn host_size(snapshot: &Snapshot) -> Option<(i32, i32)> {
     if snapshot.zoomed {
         return Some((i32::from(snapshot.area.width), i32::from(snapshot.area.height)));
@@ -211,6 +216,31 @@ mod tests {
     fn hides_when_host_smaller_than_minimum_grid() {
         assert!(placement(9, 6).is_none());
         assert!(placement(80, 24).is_some());
+    }
+
+    #[test]
+    fn sidebar_still_shows_when_focused_host_too_small_for_overlay() {
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 24,
+        };
+        let left = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 24,
+        };
+        let right = Rect {
+            x: 40,
+            y: 0,
+            width: 9,
+            height: 6,
+        };
+        let snap = two_pane(false, area, left, right);
+        assert!(should_hide(&snap));
+        assert!(!should_hide_sidebar(&snap));
     }
 
     #[test]

@@ -1,13 +1,19 @@
 use std::fs;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
+fn log_line(msg: &str) {
+    let mut err = std::io::stderr().lock();
+    let _ = writeln!(err, "herdr-pane-minimap: {msg}");
+    let _ = err.flush();
+}
+
+use herdr_pane_minimap::ascii;
 use herdr_pane_minimap::herdr::{self, Client};
-use herdr_pane_minimap::layout::{self, Snapshot};
-use herdr_pane_minimap::render::png_for_snapshot;
+use herdr_pane_minimap::layout::Snapshot;
 
 fn state_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("HERDR_PLUGIN_STATE_DIR") {
@@ -57,7 +63,41 @@ fn write_pid() {
 struct ApplyState {
     focused_tab: String,
     last_pane: Option<String>,
-    logged_disabled: bool,
+    last_workspace: Option<String>,
+    seq: u64,
+    cleared_overlay: bool,
+}
+
+fn clear_overlay(client: &Client, state: &mut ApplyState, snapshot: &Snapshot) {
+    if let Some(pane) = state.last_pane.take() {
+        let _ = client.graphics_clear(&pane);
+    }
+    if !state.cleared_overlay {
+        for pane in &snapshot.panes {
+            let _ = client.graphics_clear(&pane.pane_id);
+        }
+        state.cleared_overlay = true;
+    }
+}
+
+fn report_tokens(
+    client: &Client,
+    state: &mut ApplyState,
+    workspace_id: &str,
+    tokens: &serde_json::Map<String, serde_json::Value>,
+) -> bool {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    state.seq = now.max(state.seq.saturating_add(1));
+    match client.workspace_report_tokens(workspace_id, tokens, state.seq) {
+        Ok(()) => true,
+        Err(err) => {
+            log_line(&format!("report-metadata {workspace_id} failed: {err}"));
+            false
+        }
+    }
 }
 
 fn apply(client: &Client, state: &mut ApplyState, snapshot: &Snapshot) {
@@ -65,63 +105,31 @@ fn apply(client: &Client, state: &mut ApplyState, snapshot: &Snapshot) {
         return;
     }
     state.focused_tab = snapshot.tab_id.clone();
-    if layout::should_hide(snapshot) {
-        if let Some(pane) = state.last_pane.take() {
-            let _ = client.graphics_clear(&pane);
-        }
-        return;
-    }
-    let Some(place) = layout::placement_for(snapshot) else {
-        return;
-    };
-    let info = match client.graphics_info(&snapshot.focused_pane_id) {
-        Ok(info) => info,
-        Err(err) => {
-            let msg = err.to_string();
-            if msg.contains("feature_disabled") && !state.logged_disabled {
-                eprintln!("herdr-pane-minimap: kitty graphics disabled: {msg}");
-                state.logged_disabled = true;
+    clear_overlay(client, state, snapshot);
+
+    if let Some(old) = state.last_workspace.clone() {
+        if old != snapshot.workspace_id {
+            let cleared = ascii::cleared_sidebar_tokens();
+            if report_tokens(client, state, &old, &cleared) {
+                log_line(&format!("cleared sidebar tokens on {old}"));
             }
-            return;
-        }
-    };
-    if info.cell_width_px == 0 || info.cell_height_px == 0 {
-        return;
-    }
-    if !info.pane_visible {
-        if let Some(pane) = state.last_pane.take() {
-            let _ = client.graphics_clear(&pane);
-        }
-        return;
-    }
-    let png = png_for_snapshot(
-        snapshot,
-        info.cell_width_px,
-        info.cell_height_px,
-        place.grid_cols,
-        place.grid_rows,
-    );
-    let image_width = u32::from(place.grid_cols) * info.cell_width_px;
-    let image_height = u32::from(place.grid_rows) * info.cell_height_px;
-    if state.last_pane.as_deref() != Some(snapshot.focused_pane_id.as_str()) {
-        if let Some(old) = state.last_pane.take() {
-            let _ = client.graphics_clear(&old);
         }
     }
-    if client
-        .graphics_set(
-            &snapshot.focused_pane_id,
-            &png,
-            image_width,
-            image_height,
-            place.viewport_col,
-            place.viewport_row,
-            place.grid_cols,
-            place.grid_rows,
-        )
-        .is_ok()
-    {
-        state.last_pane = Some(snapshot.focused_pane_id.clone());
+
+    let tokens = ascii::sidebar_tokens(snapshot);
+    if report_tokens(client, state, &snapshot.workspace_id, &tokens) {
+        let shown = !tokens
+            .get(ascii::TITLE_TOKEN)
+            .map(|v| v.is_null())
+            .unwrap_or(true);
+        log_line(&format!(
+            "sidebar {} {} focus={} panes={}",
+            if shown { "set" } else { "hide" },
+            snapshot.workspace_id,
+            snapshot.focused_pane_id,
+            snapshot.panes.len()
+        ));
+        state.last_workspace = Some(snapshot.workspace_id.clone());
     }
 }
 
@@ -135,57 +143,49 @@ fn is_subscribe_ack(value: &serde_json::Value) -> bool {
     value.get("result").is_some()
 }
 
+fn refresh_from_layout(client: &Client, state: &mut ApplyState) {
+    if let Ok(snap) = client.pane_layout() {
+        state.focused_tab = snap.tab_id.clone();
+        apply(client, state, &snap);
+    }
+}
+
 fn watch() -> std::io::Result<()> {
     kill_existing();
     write_pid();
+    log_line("watch started");
     let mut state = ApplyState {
         focused_tab: String::new(),
         last_pane: None,
-        logged_disabled: false,
+        last_workspace: None,
+        seq: 0,
+        cleared_overlay: false,
     };
     loop {
         match Client::connect() {
             Ok(client) => {
-                if let Ok(snap) = client.pane_layout() {
-                    state.focused_tab = snap.tab_id.clone();
-                    apply(&client, &mut state, &snap);
-                    match herdr::subscribe_stream() {
-                        Ok(mut reader) => {
-                            let mut line = String::new();
-                            while reader.read_line(&mut line)? > 0 {
-                                if let Ok(value) = serde_json::from_str::<serde_json::Value>(&line) {
-                                    if is_subscribe_ack(&value) {
-                                        line.clear();
-                                        continue;
-                                    }
-                                    match herdr::event_name(&value).as_deref() {
-                                        Some("layout.updated") => {
-                                            if let Some(snap) = value
-                                                .pointer("/data/layout")
-                                                .and_then(herdr::snapshot_from_layout_result)
-                                                .or_else(|| {
-                                                    value
-                                                        .get("data")
-                                                        .and_then(herdr::snapshot_from_layout_result)
-                                                })
-                                            {
-                                                apply(&client, &mut state, &snap);
-                                            }
-                                        }
-                                        Some("tab.focused") | Some("workspace.focused") => {
-                                            if let Ok(snap) = client.pane_layout() {
-                                                state.focused_tab = snap.tab_id.clone();
-                                                apply(&client, &mut state, &snap);
-                                            }
-                                        }
-                                        _ => {}
-                                    }
+                refresh_from_layout(&client, &mut state);
+                match herdr::subscribe_stream() {
+                    Ok(mut reader) => {
+                        let mut line = String::new();
+                        while reader.read_line(&mut line)? > 0 {
+                            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&line) {
+                                if is_subscribe_ack(&value) {
+                                    line.clear();
+                                    continue;
                                 }
-                                line.clear();
+                                if herdr::matches_event(&value, "layout.updated")
+                                    || herdr::matches_event(&value, "tab.focused")
+                                    || herdr::matches_event(&value, "workspace.focused")
+                                    || herdr::matches_event(&value, "pane.focused")
+                                {
+                                    refresh_from_layout(&client, &mut state);
+                                }
                             }
+                            line.clear();
                         }
-                        Err(_) => thread::sleep(Duration::from_secs(2)),
                     }
+                    Err(_) => thread::sleep(Duration::from_secs(2)),
                 }
             }
             Err(_) => thread::sleep(Duration::from_secs(2)),
@@ -199,7 +199,7 @@ fn main() {
     match arg.as_deref() {
         Some("watch") => {
             if let Err(err) = watch() {
-                eprintln!("herdr-pane-minimap watch: {err}");
+                log_line(&format!("watch exited: {err}"));
                 std::process::exit(1);
             }
         }

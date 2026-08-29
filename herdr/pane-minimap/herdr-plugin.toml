@@ -2,7 +2,7 @@ id = "herdr-pane-minimap"
 name = "Pane Minimap"
 version = "0.1.0"
 min_herdr_version = "0.8.0"
-description = "Always-on top-right pane layout HUD via Kitty graphics"
+description = "Always-on pane layout map in the Spaces sidebar"
 platforms = ["macos", "linux"]
 
 [[build]]
