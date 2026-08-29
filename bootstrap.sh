@@ -615,6 +615,25 @@ _fallback_hunk() {
 	return 1
 }
 
+_fallback_bun() {
+	export PATH="$HOME/.local/bin:$PATH"
+	if command -v bun >/dev/null 2>&1; then
+		log_success "bun already installed"
+		return 0
+	fi
+	log_info "Installing bun via official installer..."
+	if curl -fsSL https://bun.sh/install | BUN_INSTALL="$HOME/.local" bash; then
+		hash -r 2>/dev/null || true
+		export PATH="$HOME/.local/bin:$PATH"
+		if command -v bun >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/bun" ]]; then
+			log_success "Installed bun"
+			return 0
+		fi
+	fi
+	log_warn "bun install failed"
+	return 1
+}
+
 _fallback_plannotator() {
 	export PATH="$HOME/.local/bin:$PATH"
 	log_info "Installing plannotator (core skills + extras)..."
