@@ -132,15 +132,15 @@ fn is_subscribe_ack(value: &serde_json::Value) -> bool {
 fn watch() -> std::io::Result<()> {
     kill_existing();
     write_pid();
+    let mut state = ApplyState {
+        focused_tab: String::new(),
+        last_pane: None,
+        logged_disabled: false,
+    };
     loop {
         match Client::connect() {
             Ok(client) => {
                 if let Ok(snap) = client.pane_layout() {
-                    let mut state = ApplyState {
-                        focused_tab: snap.tab_id.clone(),
-                        last_pane: None,
-                        logged_disabled: false,
-                    };
                     apply(&client, &mut state, &snap);
                     match herdr::subscribe_stream() {
                         Ok(mut reader) => {
