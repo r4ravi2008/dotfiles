@@ -1222,8 +1222,11 @@ install_herdr_github_plugin() {
 
 # dleen/herdr-agents only lists claude/codex/pi. Prefer cursor when `cursor` is
 # on PATH; ctrl-a still lists every kind that kinds_available() finds.
-prefer_cursor_in_herdr_agents() {
-	local root
+# The picker inherits FZF_DEFAULT_OPTS=--height 40% --border from the Herdr
+# server shell, so the 90% popup shrinks to a few rows and the preview hides
+# the rest of the list. Clear those opts and keep the preview on the right.
+patch_herdr_agents() {
+	local root opener
 	root="$(herdr plugin list --plugin dleen.herdr-agents --json 2>/dev/null \
 		| python3 -c 'import json,sys; d=json.load(sys.stdin); ps=d.get("result",{}).get("plugins") or []; print(ps[0].get("plugin_root","") if ps else "")' 2>/dev/null || true)"
 	local script="$root/herdr-agents"
@@ -1232,13 +1235,34 @@ prefer_cursor_in_herdr_agents() {
 	fi
 	if grep -Fq 'AGENT_KINDS = ("cursor", "claude", "codex", "pi")' "$script"; then
 		log_info "herdr-agents already prefers cursor"
-		return 0
-	fi
-	if grep -Fq 'AGENT_KINDS = ("claude", "codex", "pi")' "$script"; then
+	elif grep -Fq 'AGENT_KINDS = ("claude", "codex", "pi")' "$script"; then
 		perl -pi -e 's/AGENT_KINDS = \("claude", "codex", "pi"\)/AGENT_KINDS = ("cursor", "claude", "codex", "pi")/' "$script"
 		log_success "herdr-agents default kinds now start with cursor"
 	else
 		log_warn "herdr-agents AGENT_KINDS line changed upstream; skipped cursor patch"
+	fi
+	if grep -Fq '--height=100%' "$script"; then
+		log_info "herdr-agents fzf already fills the popup"
+	elif grep -Fq '"--layout=reverse", "--info=inline", "--pointer=>",' "$script"; then
+		perl -pi -e 's/"--layout=reverse", "--info=inline", "--pointer=>",/"--layout=reverse", "--height=100%", "--info=inline", "--pointer=>",/' "$script"
+		log_success "herdr-agents fzf now fills the popup"
+	else
+		log_warn "herdr-agents fzf args changed upstream; skipped height patch"
+	fi
+	if grep -Fq 'if cols >= 100:' "$script"; then
+		log_info "herdr-agents preview already stays on the right"
+	elif grep -Fq 'if cols >= 170:' "$script"; then
+		perl -pi -e 's/if cols >= 170:/if cols >= 100:/; s/return f"down,\{max\(14, lines \* 3 \/\/ 5\)\},wrap,border-top"/return f"down,{min(8, max(4, lines \/\/ 5))},wrap,border-top"/' "$script"
+		log_success "herdr-agents preview stays beside the list"
+	else
+		log_warn "herdr-agents preview_window changed upstream; skipped preview patch"
+	fi
+	opener="$root/open-picker.sh"
+	if [[ -f "$opener" ]] && grep -Fq 'FZF_DEFAULT_OPTS' "$opener"; then
+		log_info "herdr-agents opener already clears FZF_DEFAULT_OPTS"
+	elif [[ -f "$opener" ]] && grep -Fq '--entrypoint picker' "$opener"; then
+		perl -pi -e 's/--entrypoint picker/--entrypoint picker \\\n\t--env FZF_DEFAULT_OPTS=/' "$opener"
+		log_success "herdr-agents opener clears FZF_DEFAULT_OPTS"
 	fi
 }
 
@@ -1406,12 +1430,12 @@ main() {
 			if (cd "$herdr_minimap_dir" && bash build.sh >/dev/null 2>&1); then
 				herdr plugin uninstall herdr-pane-minimap >/dev/null 2>&1 || true
 				if herdr plugin link "$herdr_minimap_dir" >/dev/null 2>&1; then
-					log_success "Linked herdr-pane-minimap (sidebar layout map)"
+					log_success "Linked herdr-pane-minimap (zoomed-pane popup)"
 				else
-					log_warn "Could not link herdr-pane-minimap; sidebar layout map unavailable"
+					log_warn "Could not link herdr-pane-minimap; zoomed-pane popup unavailable"
 				fi
 			else
-				log_warn "Could not build herdr-pane-minimap (need cargo); sidebar layout map unavailable"
+				log_warn "Could not build herdr-pane-minimap (need cargo); zoomed-pane popup unavailable"
 			fi
 		fi
 
@@ -1441,7 +1465,7 @@ main() {
 			"$herdr_agents_ref" \
 			"Installed Herdr agents picker" \
 			"Could not install dleen/herdr-agents; prefix+a picker unavailable" || true
-		prefer_cursor_in_herdr_agents || true
+		patch_herdr_agents || true
 		# Prior bootstraps installed the Chrome presenter. Drop it.
 		herdr plugin uninstall official.plannotator >/dev/null 2>&1 || true
 		herdr plugin uninstall official.browser >/dev/null 2>&1 || true
