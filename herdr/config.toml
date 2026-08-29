@@ -153,27 +153,18 @@ description = "review the agent's last reply"
 name = "tokyo-night"
 auto_switch = false
 
-# Kitty graphics still available for other plugins. herdr-pane-minimap now
-# draws in the Spaces sidebar via workspace metadata tokens ($minimap*).
+# Pane layout popup: herdr-pane-minimap flashes a tmux-style map (plugin
+# popup, 52x24) only after a pane hop while the tab is zoomed — then closes.
 # Plugin is linked from ~/.dotfiles/herdr/pane-minimap; the watcher starts on
 # server restore. After a live `plugin link`, run that plugin's startup.sh once
-# (or restart the Herdr server) so the map appears without a reboot.
+# (or restart the Herdr server) so the watcher picks up the binary.
 [experimental]
 kitty_graphics = true
 
-# Extra Spaces rows for the pane layout map. Empty $minimap* tokens hide, so
-# only the focused workspace grows when the tab has two or more panes.
 [ui.sidebar.spaces]
 rows = [
   ["state_icon", "workspace"],
   ["branch", "git_status"],
-  [{ token = "$minimap_title", dim = true, fg = "#565f89" }],
-  [{ token = "$minimap0", fg = "#a9b1d6" }],
-  [{ token = "$minimap1", fg = "#a9b1d6" }],
-  [{ token = "$minimap2", fg = "#a9b1d6" }],
-  [{ token = "$minimap3", fg = "#a9b1d6" }],
-  [{ token = "$minimap4", fg = "#a9b1d6" }],
-  [{ token = "$minimap5", fg = "#a9b1d6" }],
 ]
 
 # Share the laptop's OpenSSH ControlMaster (IDDA / `ssh cws.*`) so CWS
