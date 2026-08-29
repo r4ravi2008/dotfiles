@@ -54,6 +54,9 @@ close_pane = ["prefix+x", "alt+shift+q"]
 zoom = ["prefix+z", "prefix+plus", "alt+z"]
 resize_mode = "prefix+shift+r"
 toggle_sidebar = "prefix+b"
+previous_agent = "alt+shift+["
+next_agent = "alt+shift+]"
+focus_agent = "prefix+alt+1..9"
 
 # Fast Alt+hjkl nav via herdr-nvim-nav (C socket action). herdr-splits' bash
 # nav scripts fork the herdr CLI several times per keypress (~300ms); this is ~10ms.
@@ -108,9 +111,18 @@ type = "plugin_action"
 command = "herdr-splits.resize-right"
 description = "resize right across Neovim and Herdr panes"
 
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "dleen.herdr-agents.open"
+description = "pick an agent"
+
 [theme]
 name = "tokyo-night"
 auto_switch = false
+
+[experimental]
+kitty_graphics = true
 
 # Share the laptop's OpenSSH ControlMaster (IDDA / `ssh cws.*`) so CWS
 # LocalForward and RemoteForward apply. Herdr's default private control
