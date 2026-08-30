@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+# Regular OpenCode and OpenCode2 cannot safely share their SQLite database.
+# Keep regular OpenCode on its own XDG data and state roots.
+export XDG_DATA_HOME="${OPENCODE_XDG_DATA_HOME:-$HOME/.local/share/opencode-v1}"
+export XDG_STATE_HOME="${OPENCODE_XDG_STATE_HOME:-$HOME/.local/state/opencode-v1}"
+
+opencode_bin="${OPENCODE_BIN:-$HOME/.opencode/bin/opencode}"
+if [ ! -x "$opencode_bin" ]; then
+	printf 'opencode: executable not found at %s\n' "$opencode_bin" >&2
+	exit 127
+fi
+
+exec "$opencode_bin" "$@"

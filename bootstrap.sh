@@ -1220,8 +1220,8 @@ install_herdr_github_plugin() {
 	return 1
 }
 
-# dleen/herdr-agents only lists claude/codex/pi. Prefer cursor when `cursor` is
-# on PATH; ctrl-a still lists every kind that kinds_available() finds.
+# Keep the agent picker focused on the configured local agents. Pi comes first,
+# so it is the default when a folder has no preference.
 # The picker inherits FZF_DEFAULT_OPTS=--height 40% --border from the Herdr
 # server shell, so the 90% popup shrinks to a few rows and the preview hides
 # the rest of the list. Clear those opts and keep the preview on the right.
@@ -1233,13 +1233,19 @@ patch_herdr_agents() {
 	if [[ ! -f "$script" ]]; then
 		return 0
 	fi
-	if grep -Fq 'AGENT_KINDS = ("cursor", "claude", "codex", "pi")' "$script"; then
-		log_info "herdr-agents already prefers cursor"
+	if grep -Fq 'AGENT_KINDS = ("pi", "opencode", "codex")' "$script"; then
+		log_info "herdr-agents already defaults to Pi"
+	elif grep -Fq 'AGENT_KINDS = ("opencode", "codex")' "$script"; then
+		perl -pi -e 's/AGENT_KINDS = \("opencode", "codex"\)/AGENT_KINDS = ("pi", "opencode", "codex")/' "$script"
+		log_success "herdr-agents now defaults to Pi"
+	elif grep -Fq 'AGENT_KINDS = ("cursor", "claude", "codex", "pi")' "$script"; then
+		perl -pi -e 's/AGENT_KINDS = \("cursor", "claude", "codex", "pi"\)/AGENT_KINDS = ("pi", "opencode", "codex")/' "$script"
+		log_success "herdr-agents now defaults to Pi"
 	elif grep -Fq 'AGENT_KINDS = ("claude", "codex", "pi")' "$script"; then
-		perl -pi -e 's/AGENT_KINDS = \("claude", "codex", "pi"\)/AGENT_KINDS = ("cursor", "claude", "codex", "pi")/' "$script"
-		log_success "herdr-agents default kinds now start with cursor"
+		perl -pi -e 's/AGENT_KINDS = \("claude", "codex", "pi"\)/AGENT_KINDS = ("pi", "opencode", "codex")/' "$script"
+		log_success "herdr-agents now defaults to Pi"
 	else
-		log_warn "herdr-agents AGENT_KINDS line changed upstream; skipped cursor patch"
+		log_warn "herdr-agents AGENT_KINDS line changed upstream; skipped agent-kind patch"
 	fi
 	if grep -Fq '--height=100%' "$script"; then
 		log_info "herdr-agents fzf already fills the popup"
@@ -1403,6 +1409,35 @@ main() {
 	install_packages cli
 
 	log_info "Setting up Herdr configuration..."
+	if command -v npm >/dev/null 2>&1; then
+		if command -v pi >/dev/null 2>&1 || npm install -g --ignore-scripts @earendil-works/pi-coding-agent; then
+			log_success "Configured Pi coding agent"
+		else
+			log_warn "Could not install Pi coding agent"
+		fi
+	fi
+	# The desktop app bundles Codex outside normal shell PATH. Expose it through
+	# ~/.local/bin so Herdr panes can start and resume Codex sessions.
+	if [[ -x "/Applications/ChatGPT.app/Contents/Resources/codex" ]]; then
+		create_symlink "/Applications/ChatGPT.app/Contents/Resources/codex" "$HOME/.local/bin/codex"
+		if [[ -x "/Applications/ChatGPT.app/Contents/Resources/codex-code-mode-host" ]]; then
+			create_symlink "/Applications/ChatGPT.app/Contents/Resources/codex-code-mode-host" "$HOME/.local/bin/codex-code-mode-host"
+		fi
+		log_success "Configured Codex CLI for Herdr shells"
+	fi
+	# Herdr resolves the supported `opencode` kind through PATH. Keep regular
+	# OpenCode's database separate from OpenCode2's incompatible schema.
+	if [[ -x "$HOME/.opencode/bin/opencode" ]]; then
+		chmod +x "$DOTFILES_DIR/opencode/opencode"
+		create_symlink "$DOTFILES_DIR/opencode/opencode" "$HOME/.local/bin/opencode"
+		mkdir -p "$HOME/.local/share/opencode-v1/opencode"
+		if [[ -f "$HOME/.local/share/opencode/auth.json" && ! -e "$HOME/.local/share/opencode-v1/opencode/auth.json" ]]; then
+			create_symlink "$HOME/.local/share/opencode/auth.json" "$HOME/.local/share/opencode-v1/opencode/auth.json"
+		fi
+		log_success "Configured Herdr OpenCode launches"
+	else
+		log_warn "OpenCode not found at ~/.opencode/bin/opencode; Herdr OpenCode launches may be unavailable"
+	fi
 	mkdir -p "$HOME/.config/herdr"
 	create_symlink "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 	if is_cloud_workspace && [[ -d /workspace ]]; then
@@ -1411,6 +1446,23 @@ main() {
 		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n\n# Keep mouse selection so annotate.capture works over herdr --remote.\n[ui]\ncopy_on_select = false\n' >>"$HOME/.config/herdr/config.toml"
 	fi
 	if command -v herdr >/dev/null 2>&1; then
+		mkdir -p "$HOME/.pi/agent/extensions"
+		if herdr integration install pi >/dev/null 2>&1; then
+			log_success "Installed current Herdr integration for Pi"
+		else
+			log_warn "Could not install the Herdr Pi integration"
+		fi
+		if herdr integration install opencode >/dev/null 2>&1; then
+			log_success "Installed current Herdr integration for OpenCode"
+		else
+			log_warn "Could not install the Herdr OpenCode integration"
+		fi
+		if herdr integration install codex >/dev/null 2>&1; then
+			log_success "Installed current Herdr integration for Codex"
+		else
+			log_warn "Could not install the Herdr Codex integration"
+		fi
+
 		local herdr_nav_dir="$DOTFILES_DIR/herdr/nvim-nav"
 		if [[ -d "$herdr_nav_dir" ]]; then
 			if (cd "$herdr_nav_dir" && make >/dev/null 2>&1); then

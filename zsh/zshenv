@@ -13,6 +13,17 @@ fi
 
 [[ -r "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 
+# The ChatGPT-bundled Codex CLI uses rustls in terminal sessions. Give it an
+# explicit readable trust bundle so Herdr shells do not inherit a stale or
+# unavailable corporate CA path from the long-running server process.
+if [[ -z "${CODEX_CA_CERTIFICATE-}" || ! -r "$CODEX_CA_CERTIFICATE" ]]; then
+  [[ -r /etc/ssl/cert.pem ]] && export CODEX_CA_CERTIFICATE=/etc/ssl/cert.pem
+fi
+
+# Plannotator reads regular OpenCode's v1 transcript database. OpenCode2 uses
+# an incompatible schema in the default data directory.
+export OPENCODE_DB="$HOME/.local/share/opencode-v1/opencode/opencode.db"
+
 # Never upload plans to share.plannotator.ai (or auto-create public short links).
 export PLANNOTATOR_SHARE=disabled
 # Keep URL annotation on-box; do not send pages through Jina Reader.
