@@ -80,7 +80,14 @@ end, { desc = "Git Log" })
 
 if in_herdr then
   vim.keymap.set("x", "<leader>a", function()
-    vim.cmd('normal! "+y')
+    vim.cmd('normal! "zy')
+    local base = os.getenv("XDG_RUNTIME_DIR")
+    if not base or base == "" then
+      base = vim.fn.fnamemodify(vim.fn.tempname(), ":h")
+    end
+    local dir = base .. "/herdr-annotate-" .. vim.loop.getuid()
+    vim.fn.mkdir(dir, "p", "0700")
+    vim.fn.writefile(vim.split(vim.fn.getreg("z"), "\n"), dir .. "/selection")
     vim.fn.jobstart({
       "herdr",
       "plugin",

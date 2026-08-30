@@ -1460,7 +1460,7 @@ main() {
 		fi
 
 		local herdr_agents_ref="74f8550a1008156f811b0bc8663ac251d9f3fcd6"
-		local herdr_annotate_ref="fb93a1318f960792452cef6cde72a2c4f4591241"
+		local herdr_annotate_ref="5d94eadfed96e4064b692718cef143afeb0931d3"
 		install_herdr_github_plugin dleen.herdr-agents dleen/herdr-agents \
 			"$herdr_agents_ref" \
 			"Installed Herdr agents picker" \
