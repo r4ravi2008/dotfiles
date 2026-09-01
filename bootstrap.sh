@@ -458,242 +458,39 @@ _run_with_timeout() {
 	fi
 }
 
-# Shared skill dests. ~/.agents/skills is canonical (Pi, Codex, OpenCode).
-# Claude Code and Cursor still need their own skill dirs.
-_skill_install_dests() {
-	local dest
-	for dest in \
-		"$HOME/.agents/skills" \
-		"$HOME/.claude/skills" \
-		"$HOME/.cursor/skills"
-	do
-		mkdir -p "$dest"
-		printf '%s\n' "$dest"
-	done
-}
-
-_set_skill_frontmatter_name() {
-	local skill_md="$1"
-	local new_name="$2"
-	python3 - "$skill_md" "$new_name" <<'PY'
-from pathlib import Path
-import sys
-path = Path(sys.argv[1])
-new_name = sys.argv[2]
-text = path.read_text()
-if not text.startswith("---"):
-    raise SystemExit(1)
-parts = text.split("---", 2)
-if len(parts) < 3:
-    raise SystemExit(1)
-fm = parts[1]
-replaced = False
-lines = []
-for line in fm.splitlines(keepends=True):
-    if not replaced and line.startswith("name:"):
-        nl = "\n" if line.endswith("\n") else ""
-        lines.append(f"name: {new_name}{nl}")
-        replaced = True
-    else:
-        lines.append(line)
-if not replaced:
-    lines.insert(0, f"name: {new_name}\n")
-path.write_text("---" + "".join(lines) + "---" + parts[2])
-PY
-}
-
-# Pi requires name: lowercase a-z, 0-9, hyphens. pstack ships display names
-# like "Poteto Mode"; rewrite those to the folder slug after copy.
-_ensure_valid_skill_name() {
-	local skill_md="$1"
-	local folder_name="$2"
-	local rc=0
-	python3 - "$skill_md" "$folder_name" <<'PY' || rc=$?
-from pathlib import Path
-import re, sys
-path = Path(sys.argv[1])
-valid = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-text = path.read_text()
-if not text.startswith("---"):
-    raise SystemExit(0)
-parts = text.split("---", 2)
-if len(parts) < 3:
-    raise SystemExit(0)
-name = None
-for line in parts[1].splitlines():
-    if line.startswith("name:"):
-        name = line.split(":", 1)[1].strip().strip('"').strip("'")
-        break
-if name is not None and valid.match(name):
-    raise SystemExit(0)
-raise SystemExit(2)
-PY
-	case "$rc" in
-	0) return 0 ;;
-	2) _set_skill_frontmatter_name "$skill_md" "$folder_name" ;;
-	*) return 0 ;;
-	esac
-}
-
-_publish_skill_dir() {
-	local src="$1"
-	local name="$2"
-	local dest
-	while IFS= read -r dest; do
-		rm -rf "$dest/$name"
-		cp -R "$src" "$dest/$name"
-		_ensure_valid_skill_name "$dest/$name/SKILL.md" "$name" \
-			|| log_warn "Could not sanitize skill name for $name"
-	done < <(_skill_install_dests)
-	log_info "Installed skill $name"
-}
-
-_install_skill_dirs() {
-	local src_root="$1"
-	local collide_prefix="${2:-}"
-	local skill name install_name work tmp
-	[[ -d "$src_root" ]] || return 1
-	while IFS= read -r skill; do
-		[[ -f "$skill/SKILL.md" ]] || continue
-		name="$(basename "$skill")"
-		install_name="$name"
-		if [[ -n "$collide_prefix" && -d "$HOME/.agents/skills/$name" ]]; then
-			install_name="${collide_prefix}-${name}"
-		fi
-		if [[ "$install_name" == "$name" ]]; then
-			_publish_skill_dir "$skill" "$install_name"
-			continue
-		fi
-		tmp="$(mktemp -d)"
-		work="$tmp/$install_name"
-		cp -R "$skill" "$work"
-		_set_skill_frontmatter_name "$work/SKILL.md" "$install_name" \
-			|| log_warn "Could not rename skill frontmatter for $install_name"
-		_publish_skill_dir "$work" "$install_name"
-		rm -rf "$tmp"
-	done < <(find "$src_root" -mindepth 1 -maxdepth 1 -type d)
-}
-
-_install_skills_from_github() {
-	local repo_url="$1"
-	local sparse_path="$2"
-	local collide_prefix="${3:-}"
-	local tmp
-	tmp="$(mktemp -d)"
-	log_info "Cloning skills from $repo_url ($sparse_path)"
-	if git clone --depth 1 --filter=blob:none --sparse "$repo_url" "$tmp/repo" >/dev/null 2>&1 \
-		&& git -C "$tmp/repo" sparse-checkout set "$sparse_path" >/dev/null 2>&1; then
-		if [[ -f "$tmp/repo/$sparse_path/SKILL.md" ]]; then
-			_install_skill_dirs "$(dirname "$tmp/repo/$sparse_path")" "$collide_prefix"
-		else
-			_install_skill_dirs "$tmp/repo/$sparse_path" "$collide_prefix"
-		fi
-		rm -rf "$tmp"
-		return 0
+# Canonical skill dir is ~/.agents/skills (Pi, Codex, OpenCode).
+# Claude Code and Cursor read their own dirs, so those become symlinks.
+_link_skill_lock() {
+	local lock="$DOTFILES_DIR/ai-agents/.skill-lock.json"
+	mkdir -p "$HOME/.agents"
+	if [[ ! -f "$lock" ]]; then
+		printf '%s\n' '{
+  "version": 3,
+  "skills": {},
+  "dismissed": {}
+}' > "$lock"
 	fi
-	rm -rf "$tmp"
-	return 1
+	create_symlink "$lock" "$HOME/.agents/.skill-lock.json"
 }
 
-_install_bundled_skill() {
-	local name="$1"
-	local src="$DOTFILES_DIR/ai-agents/.rulesync/skills/$name"
-	[[ -d "$src" ]] || return 1
-	_publish_skill_dir "$src" "$name"
+_link_harness_skills() {
+	mkdir -p "$HOME/.agents/skills" "$HOME/.claude" "$HOME/.cursor"
+	create_symlink "$HOME/.agents/skills" "$HOME/.claude/skills"
+	create_symlink "$HOME/.agents/skills" "$HOME/.cursor/skills"
 }
 
-_install_global_skills_pkg() {
+_install_skills_pkg() {
 	local pkg="$1"
-
-	case "$pkg" in
-	modem-dev/hunk)
-		if _install_bundled_skill hunk-review; then
-			log_success "Installed hunk-review skill"
-			return 0
-		fi
-		;;
-	backnotprop/plannotator/apps/skills/extra)
-		local extra name ok=1
-		for extra in plannotator-compound plannotator-setup-goal plannotator-visual-explainer; do
-			_install_bundled_skill "$extra" || ok=0
-		done
-		if [[ "$ok" -eq 1 ]]; then
-			log_success "Installed Plannotator extra skills"
-			return 0
-		fi
-		;;
-	esac
-
-	local node_major
-	node_major="$(_node_major)"
-	# Current `npx skills` needs Node 20+ (uses util.styleText). CWS images ship 18.
-	if [[ "$node_major" -ge 20 ]] && _ensure_npm; then
-		log_info "Installing agent skills from $pkg (global, all agents)"
-		if _run_with_timeout 180 npx --yes skills add "$pkg" --global --yes --skill '*' --agent '*'; then
-			log_success "Installed skills from $pkg"
-			return 0
-		fi
-		log_warn "npx skills add failed for $pkg; falling back to git clone"
-	fi
-
-	case "$pkg" in
-	modem-dev/hunk)
-		_install_skills_from_github "https://github.com/modem-dev/hunk.git" "skills/hunk-review" \
-			&& log_success "Installed hunk-review skill from git" && return 0
-		;;
-	backnotprop/plannotator/apps/skills/extra)
-		_install_skills_from_github "https://github.com/backnotprop/plannotator.git" "apps/skills/extra" \
-			&& log_success "Installed Plannotator extra skills from git" && return 0
-		;;
-	esac
-	log_warn "Could not install skills from $pkg"
-	return 1
-}
-
-# CWS Node 18 cannot run `npx skills` (needs util.styleText / Node 20+).
-# Clone the kit and copy engineering + productivity skills into agent dirs.
-_install_matt_pocock_skills() {
-	local tmp
-	tmp="$(mktemp -d)"
-	log_info "Installing Matt Pocock skills (engineering + productivity)"
-	if ! git clone --depth 1 --filter=blob:none --sparse https://github.com/mattpocock/skills.git "$tmp/repo" >/dev/null 2>&1; then
-		log_warn "Could not clone mattpocock/skills"
-		rm -rf "$tmp"
+	if ! _ensure_npm || [[ "$(_node_major)" -lt 20 ]]; then
+		log_warn "npx skills needs Node 20+; skipping $pkg"
 		return 1
 	fi
-	if ! git -C "$tmp/repo" sparse-checkout set skills/engineering skills/productivity >/dev/null 2>&1; then
-		log_warn "Could not sparse-checkout mattpocock/skills"
-		rm -rf "$tmp"
-		return 1
-	fi
-	_install_skill_dirs "$tmp/repo/skills/engineering"
-	_install_skill_dirs "$tmp/repo/skills/productivity"
-	rm -rf "$tmp"
-	if [[ -d "$HOME/.agents/skills/setup-matt-pocock-skills" ]]; then
-		log_success "Installed Matt Pocock skills"
+	log_info "skills.sh add $pkg"
+	if _run_with_timeout 600 npx --yes skills add "$pkg" --global --yes --skill '*'; then
+		log_success "Installed $pkg"
 		return 0
 	fi
-	log_warn "Matt Pocock skills clone finished but setup-matt-pocock-skills is missing"
-	return 1
-}
-
-# Full pstack catalog (cursor/plugins mirror). Names that already exist from
-# another kit (mattpocock tdd/teach) are installed as pstack-<name>.
-_install_pstack_skills() {
-	log_info "Installing pstack skills"
-	if _install_skills_from_github "https://github.com/cursor/plugins.git" "pstack/skills" "pstack"; then
-		:
-	elif _install_skills_from_github "https://github.com/backnotprop/pstack.git" "skills" "pstack"; then
-		:
-	else
-		log_warn "Could not clone pstack skills"
-		return 1
-	fi
-	if [[ -d "$HOME/.agents/skills/unslop" || -d "$HOME/.agents/skills/architect" ]]; then
-		log_success "Installed pstack skills"
-		return 0
-	fi
-	log_warn "pstack clone finished but expected skills are missing"
+	log_warn "skills add failed for $pkg"
 	return 1
 }
 
@@ -1220,7 +1017,6 @@ setup_ai_agents() {
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.cursor/commands" "$HOME/.cursor/commands" "Cursor commands"
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.cursor/agents" "$HOME/.cursor/agents" "Cursor agents"
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.cursor/rules" "$HOME/.cursor/rules" "Cursor rules"
-		sync_dir_contents "$DOTFILES_DIR/ai-agents/.cursor/skills" "$HOME/.cursor/skills" "Cursor skills"
 	else
 		log_warn "rulesync Cursor outputs not found at ai-agents/.cursor; run 'cd ~/.dotfiles/ai-agents && npx rulesync generate'"
 	fi
@@ -1232,7 +1028,6 @@ setup_ai_agents() {
 	if [[ -d "$DOTFILES_DIR/ai-agents/.claude" ]]; then
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.claude/commands" "$HOME/.claude/commands" "Claude Code commands"
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.claude/agents" "$HOME/.claude/agents" "Claude Code agents"
-		sync_dir_contents "$DOTFILES_DIR/ai-agents/.claude/skills" "$HOME/.claude/skills" "Claude Code skills"
 	else
 		log_warn "rulesync Claude Code outputs not found at ai-agents/.claude; run 'cd ~/.dotfiles/ai-agents && npx rulesync generate'"
 	fi
@@ -1278,7 +1073,9 @@ setup_ai_agents() {
 		log_warn "claude CLI or jq not found; cannot register MCP servers for Claude Code"
 	fi
 
-	# Sync skills to ~/.agents/skills (single source of truth: ai-agents/.rulesync/skills)
+	_link_skill_lock
+
+	# First-party skills only. Third-party kits come from skills.sh below.
 	if [[ -d "$DOTFILES_DIR/ai-agents/.rulesync/skills" ]]; then
 		sync_dir_contents "$DOTFILES_DIR/ai-agents/.rulesync/skills" "$HOME/.agents/skills" "agent skills (~/.agents/skills)"
 	fi
@@ -1294,16 +1091,16 @@ setup_ai_agents() {
 		fi
 	fi
 
-	# Hunk + Plannotator skills (extras are opt-in in the Plannotator installer).
+	# pstack first; Matt Pocock overwrites tdd/teach.
+	_install_skills_pkg "backnotprop/pstack" || true
+	_install_skills_pkg "mattpocock/skills" || true
 	if command -v hunk >/dev/null 2>&1; then
-		_install_global_skills_pkg "modem-dev/hunk" || true
+		_install_skills_pkg "modem-dev/hunk" || true
 	fi
 	if command -v plannotator >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/plannotator" ]]; then
-		_install_global_skills_pkg "backnotprop/plannotator/apps/skills/extra" || true
+		_install_skills_pkg "backnotprop/plannotator/apps/skills/extra" || true
 	fi
-
-	_install_matt_pocock_skills || true
-	_install_pstack_skills || true
+	_link_harness_skills
 	configure_plannotator_local_only || true
 
 	log_success "AI agent configurations set up"

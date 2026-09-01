@@ -111,7 +111,7 @@ Notes:
 - Optional: `herdr` 0.8.0+ for agent workspaces and Neovim pane navigation
 - Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share.
 - Bootstrap installs Bun so `plannotator/herdr-annotate` can fetch plannotator-tui. `plannotator annotate` still opens a browser.
-- Bootstrap also installs [Matt Pocock's skills](https://github.com/mattpocock/skills) (engineering + productivity) and [pstack](https://github.com/cursor/plugins/tree/main/pstack) into `~/.agents/skills` (shared by Pi, Codex, OpenCode)
+- Skills install into `~/.agents/skills`. `~/.claude/skills` and `~/.cursor/skills` are symlinks to that dir. Third-party kits use `npx skills add --global` (Node 20+). Lockfile: `ai-agents/.skill-lock.json`.
 
 ## Uninstall / rollback
 

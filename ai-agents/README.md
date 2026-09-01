@@ -76,7 +76,7 @@ npx rulesync generate
 
 ### Commands (4)
 
-Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills). `bootstrap.sh` clones that repo plus [pstack](https://github.com/cursor/plugins/tree/main/pstack) into `~/.agents/skills` (Pi, Codex, and OpenCode load that folder). Claude/Cursor still get copies.
+Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills) and [pstack](https://github.com/backnotprop/pstack), installed with `npx skills add --global` into `~/.agents/skills`.
 
 | Command | Description |
 |---------|-------------|
