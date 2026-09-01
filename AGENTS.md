@@ -30,7 +30,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 │   │   ├── rules/      # Rules → generates AGENTS.md
 │   │   ├── commands/   # Slash commands
 │   │   ├── subagents/  # Subagents
-│   │   ├── skills/     # Agent skills (synced to ~/.agents/skills)
+│   │   ├── skills/     # Personal skills (symlinked into ~/.agents/skills)
 │   │   └── mcp.json    # MCP server configurations
 │   ├── rulesync.jsonc  # Rulesync configuration
 │   └── ...             # Generated per-tool outputs (.cursor/, .claude/, etc.)
@@ -75,13 +75,13 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - Unified rules via rulesync
 - Supported tools: OpenCode, Cursor, Claude Code, Windsurf, Codex CLI, Pi
 - OpenCode MCP config: generated at `ai-agents/opencode.json` (symlinked to `~/.config/opencode/opencode.json`)
-- Claude Code: commands/agents in `.claude/`, MCP merged into `~/.claude.json` (user-scope) from rulesync `mcp.json`. Skills are `~/.claude/skills` → `~/.agents/skills`.
+- Claude Code: commands/agents in `.claude/`, MCP merged into `~/.claude.json` (user-scope) from rulesync `mcp.json`. Skills are not generated into `.claude/skills`; `~/.claude/skills` → `~/.agents/skills`.
 - Pi: no built-in MCP; bootstrap installs `pi-mcp-adapter` and links rulesync `mcp.json` to `~/.config/mcp/mcp.json` and `~/.agents/mcp.json`
 - Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
 - Personal commands: `/pr`, `/deslop`, `/jira-list`, `/audit-effect-native-impl`
 - Personal skills in rulesync: `commit` (Jira-prefixed conventional commits; replacement for the old `git-commit-flow`); `force-pushing-ghes-default` (GH003 on github.intuit.com fork default branches)
 - `creating-cws-from-devstack-fork` and `developing-in-cws` sit in `.agents/skills/`, symlinked into `~/.agents/skills`. Not in `.rulesync/skills`.
-- Skills live in `~/.agents/skills` (Pi, Codex, OpenCode). Bootstrap symlinks `~/.claude/skills` and `~/.cursor/skills` there. First-party from `.rulesync/skills`; third-party via `npx skills add --global` (Node 20+). Lockfile: `ai-agents/.skill-lock.json`.
+- Skills live in `~/.agents/skills`. Personal skills (`.rulesync/skills` and `.agents/skills`) are symlinked in; third-party kits come from `npx skills add --global`. `~/.claude/skills` and `~/.cursor/skills` symlink to that dir.
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
 - CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+shift+p` folder, `prefix+shift+y` last reply, `prefix+shift+a` capture). Needs Bun.
 - Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (tmux-style popup while hopping zoomed panes). Tmux `pane-minimap` popup is unchanged.
@@ -105,7 +105,7 @@ The `bootstrap.sh` script:
 4. Installs CLI tools (zoxide, fzf, fd, ripgrep, lazygit) via Homebrew or fallback
 5. Symlinks Ghostty and lazygit configurations
 6. Sets up AI agent configurations (OpenCode, Cursor, Claude Code)
-7. Puts skills in `~/.agents/skills` (rulesync + `npx skills add --global`), then symlinks `~/.claude/skills` and `~/.cursor/skills` to that dir
+7. `npx skills add --global` for third-party kits, then symlink personal skills and `~/.claude/skills` / `~/.cursor/skills` into `~/.agents/skills`
 8. Backs up existing configs before overwriting
 9. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack) and Plannotator (19432). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
 

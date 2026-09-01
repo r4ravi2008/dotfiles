@@ -1,7 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
-  "targets": ["opencode", "codexcli", "cursor", "claudecode"],
-  "features": ["rules", "ignore", "mcp", "commands", "subagents", "skills"],
+  // Skills are not generated per tool. Bootstrap installs them into
+  // ~/.agents/skills and symlinks ~/.claude/skills and ~/.cursor/skills there.
+  "targets": {
+    "opencode": ["rules", "ignore", "mcp", "commands", "subagents"],
+    "codexcli": ["rules", "ignore", "mcp", "commands", "subagents"],
+    "cursor": ["rules", "ignore", "mcp", "commands", "subagents"],
+    "claudecode": ["rules", "ignore", "mcp", "commands", "subagents"],
+  },
   "baseDirs": ["."],
   "delete": true,
   "verbose": false,

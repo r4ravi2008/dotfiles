@@ -479,6 +479,23 @@ _link_harness_skills() {
 	create_symlink "$HOME/.agents/skills" "$HOME/.cursor/skills"
 }
 
+# Personal skills stay in the repo. Point ~/.agents/skills/<name> at them.
+_link_repo_skills() {
+	local src dest name
+	mkdir -p "$HOME/.agents/skills"
+	for src in \
+		"$DOTFILES_DIR/.agents/skills" \
+		"$DOTFILES_DIR/ai-agents/.rulesync/skills"
+	do
+		[[ -d "$src" ]] || continue
+		for dest in "$src"/*; do
+			[[ -d "$dest" && -f "$dest/SKILL.md" ]] || continue
+			name="$(basename "$dest")"
+			create_symlink "$dest" "$HOME/.agents/skills/$name"
+		done
+	done
+}
+
 _install_skills_pkg() {
 	local pkg="$1"
 	if ! _ensure_npm || [[ "$(_node_major)" -lt 20 ]]; then
@@ -925,8 +942,6 @@ setup_ai_agents() {
 			log_info "Generating rulesync outputs (OpenCode/Cursor/Claude Code/etc.)..."
 			if (cd "$DOTFILES_DIR/ai-agents" && npx rulesync generate); then
 				log_success "Generated rulesync outputs"
-				# OpenCode discovers skills from ~/.agents/skills/ (synced by bootstrap below),
-				# so remove the redundant rulesync-generated copy to avoid confusion.
 				rm -rf "$DOTFILES_DIR/ai-agents/.opencode/skill"
 			else
 				log_warn "rulesync generate failed; some agent configs may be stale"
@@ -1075,11 +1090,6 @@ setup_ai_agents() {
 
 	_link_skill_lock
 
-	# First-party skills only. Third-party kits come from skills.sh below.
-	if [[ -d "$DOTFILES_DIR/ai-agents/.rulesync/skills" ]]; then
-		sync_dir_contents "$DOTFILES_DIR/ai-agents/.rulesync/skills" "$HOME/.agents/skills" "agent skills (~/.agents/skills)"
-	fi
-
 	# Install OpenCode plugin dependencies (skip if node_modules is up-to-date)
 	if [[ -f "$DOTFILES_DIR/opencode/package.json" ]]; then
 		local oc_dir="$HOME/.config/opencode"
@@ -1100,6 +1110,7 @@ setup_ai_agents() {
 	if command -v plannotator >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/plannotator" ]]; then
 		_install_skills_pkg "backnotprop/plannotator/apps/skills/extra" || true
 	fi
+	_link_repo_skills
 	_link_harness_skills
 	configure_plannotator_local_only || true
 

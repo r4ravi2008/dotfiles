@@ -6,10 +6,10 @@ Unified AI coding agent configuration managed by [rulesync](https://github.com/d
 
 | Tool | Output Directory | Notes |
 |------|-----------------|-------|
-| **Claude Code** | `.claude/` | Commands, agents, skills, MCP, permissions |
-| **Cursor** | `.cursor/` | Commands, agents, skills, MCP, `.mdc` rules |
-| **OpenCode** | `.opencode/` + `opencode.json` | Commands, agents, skills, MCP |
-| **Codex CLI** | `.codex/` | Agents (TOML), skills, MCP (TOML) |
+| **Claude Code** | `.claude/` | Commands, agents, MCP. Skills come from `~/.agents/skills` |
+| **Cursor** | `.cursor/` | Commands, agents, MCP, `.mdc` rules. Skills come from `~/.agents/skills` |
+| **OpenCode** | `.opencode/` + `opencode.json` | Commands, agents, MCP. Skills come from `~/.agents/skills` |
+| **Codex CLI** | `.codex/` | Agents (TOML), MCP (TOML). Skills come from `~/.agents/skills` |
 | **Windsurf** | `.codeiumignore` | Uses `AGENTS.md` for rules |
 | **GitHub Copilot** | `.copilot/` | MCP config |
 
