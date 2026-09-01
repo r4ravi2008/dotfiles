@@ -1,6 +1,6 @@
 # Dotfiles Agent Instructions
 
-This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazygit, and AI agent configurations.
+This repository contains dotfiles for LazyVim (Neovim), zsh, Ghostty, lazygit, Herdr, and AI agent configurations.
 
 ## Repository Structure
 
@@ -14,8 +14,6 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 ├── zsh/
 │   ├── zshrc           # Main zsh configuration (ultra-fast, no oh-my-zsh overhead)
 │   └── zshenv          # Environment variables loaded before zshrc
-├── tmux/
-│   └── tmux.conf.local # Local tmux customizations (gpakosz/.tmux framework)
 ├── ghostty/
 │   └── config          # Ghostty terminal configuration
 ├── lazygit/
@@ -44,7 +42,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 
 ### Neovim (LazyVim)
 - LazyVim base configuration
-- Plugins: oil.nvim, obsidian, copilot-chat, tmux-navigator, octo, snacks, opencode
+- Plugins: oil.nvim, obsidian, octo, snacks, opencode, herdr-nvim-nav, herdr-splits
 - Custom keymaps and autocmds
 - Neovide and VSCode compatibility
 
@@ -57,10 +55,6 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - Custom functions: mkcd, cdl, f, r, ask (opencode)
 - No oh-my-zsh runtime (direct plugin sourcing)
 
-### Tmux
-- Based on gpakosz/.tmux framework
-- Custom local configuration
-
 ### Ghostty
 - Ghostty terminal emulator configuration
 - TokyoNight theme with custom background
@@ -68,7 +62,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 
 ### Lazygit
 - Custom GUI settings (side panel width, expanded focus)
-- Tmux-compatible keybindings (Ctrl+l/j/k disabled to pass through to tmux)
+- Herdr-compatible keybindings (Ctrl+l/j/k disabled to pass through to Herdr)
 - Config symlinked to `~/Library/Application Support/lazygit/config.yml`
 
 ### AI Agents (OpenCode, Cursor, Claude Code, Windsurf, etc.)
@@ -84,7 +78,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 - Skills live in `~/.agents/skills`. Personal skills (`.rulesync/skills` and `.agents/skills`) are symlinked in; third-party kits come from `npx skills add --global`. `~/.claude/skills` and `~/.cursor/skills` symlink to that dir.
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
 - CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+shift+p` folder, `prefix+shift+y` last reply, `prefix+shift+a` capture). Needs Bun.
-- Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (tmux-style popup while hopping zoomed panes). Tmux `pane-minimap` popup is unchanged.
+- Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (popup while hopping zoomed panes).
 
 #### Rulesync (Source of Truth)
 
@@ -100,14 +94,13 @@ For AI agents, treat rulesync as the source of truth for rules, commands, subage
 
 The `bootstrap.sh` script:
 1. Creates symlinks from home directory to dotfiles
-2. Installs gpakosz/.tmux if not present
-3. Installs oh-my-zsh plugins (zsh-autosuggestions, zsh-syntax-highlighting)
-4. Installs CLI tools (zoxide, fzf, fd, ripgrep, lazygit) via Homebrew or fallback
-5. Symlinks Ghostty and lazygit configurations
-6. Sets up AI agent configurations (OpenCode, Cursor, Claude Code)
-7. `npx skills add --global` for third-party kits, then symlink personal skills and `~/.claude/skills` / `~/.cursor/skills` into `~/.agents/skills`
-8. Backs up existing configs before overwriting
-9. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack) and Plannotator (19432). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
+2. Installs oh-my-zsh plugins (zsh-autosuggestions, zsh-syntax-highlighting)
+3. Installs CLI tools (zoxide, fzf, fd, ripgrep, lazygit) via Homebrew or fallback, plus AWS CLI and Rust on both laptop and CWS
+4. Symlinks Ghostty and lazygit configurations (Ghostty laptop-only)
+5. Sets up AI agent configurations (OpenCode, Cursor, Claude Code)
+6. `npx skills add --global` for third-party kits, then symlink personal skills and `~/.claude/skills` / `~/.cursor/skills` into `~/.agents/skills`
+7. Backs up existing configs before overwriting
+8. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack) and Plannotator (19432). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
 
 ## Development Guidelines
 

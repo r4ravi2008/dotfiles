@@ -793,22 +793,6 @@ install_packages() {
 }
 
 # -----------------------------------------------------------------------------
-# Install gpakosz/.tmux
-# -----------------------------------------------------------------------------
-install_tmux_framework() {
-	if [[ -d "$HOME/.tmux" ]]; then
-		log_info "gpakosz/.tmux already installed"
-	else
-		log_info "Installing gpakosz/.tmux..."
-		git clone https://github.com/gpakosz/.tmux.git "$HOME/.tmux"
-		log_success "Installed gpakosz/.tmux"
-	fi
-
-	# Create symlink for .tmux.conf
-	create_symlink "$HOME/.tmux/.tmux.conf" "$HOME/.tmux.conf"
-}
-
-# -----------------------------------------------------------------------------
 # Install oh-my-zsh plugins
 # -----------------------------------------------------------------------------
 install_zsh_plugins() {
@@ -877,50 +861,6 @@ install_rust() {
 		fi
 	else
 		log_warn "Rust installation failed; continuing bootstrap"
-	fi
-}
-
-# -----------------------------------------------------------------------------
-# Setup tmux pane minimap helper (Rust build + wrapper permissions)
-# -----------------------------------------------------------------------------
-setup_tmux_pane_minimap() {
-	local wrapper="$DOTFILES_DIR/tmux/pane-minimap"
-	local manifest="$DOTFILES_DIR/tmux/pane-minimap-rs/Cargo.toml"
-	local src="$DOTFILES_DIR/tmux/pane-minimap-rs/src/main.rs"
-	local bin="$DOTFILES_DIR/tmux/pane-minimap-rs/target/release/pane-minimap"
-	local cargo_cmd="cargo"
-
-	if [[ ! -f "$wrapper" ]]; then
-		log_warn "tmux/pane-minimap wrapper not found; skipping pane minimap setup"
-		return
-	fi
-
-	chmod +x "$wrapper"
-
-	if command -v cargo >/dev/null 2>&1; then
-		cargo_cmd="cargo"
-	elif [[ -x "$HOME/.cargo/bin/cargo" ]]; then
-		cargo_cmd="$HOME/.cargo/bin/cargo"
-	else
-		log_warn "cargo not found; pane-minimap will use Python fallback"
-		return
-	fi
-
-	if [[ ! -f "$manifest" || ! -f "$src" ]]; then
-		log_warn "pane-minimap Rust sources not found; skipping binary build"
-		return
-	fi
-
-	if [[ -x "$bin" && "$manifest" -ot "$bin" && "$src" -ot "$bin" ]]; then
-		log_info "tmux pane-minimap Rust binary already up-to-date"
-		return
-	fi
-
-	log_info "Building tmux pane-minimap Rust binary..."
-	if "$cargo_cmd" build --release --manifest-path "$manifest" >/dev/null 2>&1; then
-		log_success "Built tmux pane-minimap Rust binary"
-	else
-		log_warn "Failed to build pane-minimap Rust binary; Python fallback will be used"
 	fi
 }
 
@@ -1331,11 +1271,6 @@ main() {
 			|| log_info "Could not chsh; interactive bash will exec zsh via ~/.bash_aliases"
 	fi
 
-	log_info "Setting up Tmux configuration..."
-	install_tmux_framework
-	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux/.tmux.conf.local"
-	create_symlink "$DOTFILES_DIR/tmux/tmux.conf.local" "$HOME/.tmux.conf.local"
-
 	log_info "Setting up ImageMagick font map (image.nvim identify)..."
 	mkdir -p "$HOME/.config/ImageMagick"
 	create_symlink "$DOTFILES_DIR/imagemagick/type.xml" "$HOME/.config/ImageMagick/type.xml"
@@ -1355,6 +1290,12 @@ main() {
 
 	log_info "Installing CLI tools..."
 	install_packages cli
+
+	log_info "Installing cloud tools..."
+	install_packages cloud
+
+	log_info "Installing Rust toolchain..."
+	install_rust
 
 	log_info "Setting up Herdr configuration..."
 	if command -v npm >/dev/null 2>&1; then
@@ -1498,14 +1439,8 @@ main() {
 		log_info "Installing window management tools..."
 		install_packages wm
 
-		log_info "Installing container & cloud tools..."
-		install_packages container cloud
-
-		log_info "Installing Rust toolchain..."
-		install_rust
-
-		log_info "Setting up tmux pane minimap..."
-		setup_tmux_pane_minimap
+		log_info "Installing container tools..."
+		install_packages container
 	fi
 
 	log_info "Setting up AI Agents configuration..."
@@ -1526,7 +1461,7 @@ main() {
 		echo "  3. On your laptop: cws login && cws config-ssh"
 		echo "  4. Attach Herdr: herdr --remote coder@cws.<workspace-name>"
 	else
-		echo "  3. Start a new tmux or herdr session"
+		echo "  3. Start a new herdr session"
 		echo "  4. If you edit ai-agent rules, run: cd ~/.dotfiles/ai-agents && npx rulesync generate"
 	fi
 	echo ""

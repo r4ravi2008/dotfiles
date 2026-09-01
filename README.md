@@ -4,7 +4,6 @@ Personal dotfiles for:
 
 - Neovim (LazyVim): `nvim/` -> `~/.config/nvim`
 - Zsh: `zsh/zshrc`, `zsh/zshenv` -> `~/.zshrc`, `~/.zshenv`
-- Tmux (gpakosz/.tmux framework): `tmux/tmux.conf.local` -> `~/.tmux/.tmux.conf.local`
 - Herdr: `herdr/config.toml` -> `~/.config/herdr/config.toml`
 - OpenCode config + plugins: `opencode/` -> `~/.config/opencode/*`
 - Shared AI agent rules (rulesync): `ai-agents/` (generates `AGENTS.md`, MCP configs, etc.)
@@ -23,7 +22,7 @@ After bootstrap:
 
 - Restart your shell (or `source ~/.zshrc`)
 - Open `nvim` once to let LazyVim install plugins
-- Start a new `tmux` session
+- Start a new `herdr` session
 - Generate AI agent outputs (see below)
 
 ## What bootstrap.sh does
@@ -32,8 +31,7 @@ After bootstrap:
 
 - Creates symlinks from your home directory into `~/.dotfiles/`
 - Backs up any existing files it would replace to `~/.dotfiles_backup/<timestamp>/`
-- Installs `gpakosz/.tmux` to `~/.tmux` (if missing) and links `~/.tmux.conf`
-- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate `prefix+shift+a` / `p` / `y`), installs Pi as the default agent with regular OpenCode and Codex still available, exposes the ChatGPT-bundled Codex CLI and code-mode host to Herdr shells, configures Codex's CA bundle, keeps regular OpenCode's data separate from OpenCode2, installs the agents' Herdr session integrations, builds `herdr-nvim-nav` and `herdr-pane-minimap` (tmux-style zoomed-pane popup, not an always-on HUD), and installs `herdr-splits`, `dleen/herdr-agents`, and `plannotator/herdr-annotate` when Herdr is available
+- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate `prefix+shift+a` / `p` / `y`), installs Pi as the default agent with regular OpenCode and Codex still available, exposes the ChatGPT-bundled Codex CLI and code-mode host to Herdr shells, configures Codex's CA bundle, keeps regular OpenCode's data separate from OpenCode2, installs the agents' Herdr session integrations, builds `herdr-nvim-nav` and `herdr-pane-minimap` (zoomed-pane popup, not an always-on HUD), and installs `herdr-splits`, `dleen/herdr-agents`, and `plannotator/herdr-annotate` when Herdr is available
 - Installs zsh plugin repos (autosuggestions + syntax-highlighting) into the oh-my-zsh custom plugin dir
 - Sets up OpenCode config and plugin directories under `~/.config/opencode/`
 - Links rulesync-generated AI agent outputs when present (OpenCode MCP config + `~/AGENTS.md`)
@@ -67,7 +65,7 @@ herdr --remote cws.<workspace-name>
 
 If `Host cws.<name>` already sets `User coder`, `herdr --remote cws.<name>` is enough. The zsh `herdr` wrapper opens the same SSH mux (and `LocalForward`s) as `ssh` before attaching. Detach with `ctrl+b q`.
 
-CWS profile skips Ghostty, skhd, Podman, AWS CLI, and Rust (the image already has Docker and awscli). Interactive Bash `exec`s zsh via `.bash_aliases` unless `CWS_KEEP_BASH=1`.
+CWS profile skips Ghostty, skhd, and Podman (the image already has Docker). It still installs AWS CLI and Rust. Interactive Bash `exec`s zsh via `.bash_aliases` unless `CWS_KEEP_BASH=1`.
 
 ## AI agent rules (rulesync)
 
@@ -91,8 +89,7 @@ Notes:
 
 - `nvim/`: LazyVim config (entry: `nvim/init.lua`)
 - `zsh/`: zsh runtime config
-- `tmux/`: tmux local overrides for the gpakosz framework
-- `herdr/`: tmux-aligned Herdr keys and the Neovim bridge action bindings
+- `herdr/`: Herdr keys and the Neovim bridge action bindings
 - `opencode/`: OpenCode app config, custom plugins, and slash commands
 - `ai-agents/`: rulesync inputs + generated outputs for AI coding tools
 - `cursor/`: Cursor remote settings (MCP OAuth + Plannotator auto-forward)
@@ -106,7 +103,7 @@ Notes:
 
 ## Prereqs / optional tools
 
-- Required: `git`, `zsh`, `tmux`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
+- Required: `git`, `zsh`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
 - Optional: `herdr` 0.8.0+ for agent workspaces and Neovim pane navigation
 - Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share.
