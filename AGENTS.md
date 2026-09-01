@@ -73,7 +73,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, Ghostty, lazygit, H
 - Pi: no built-in MCP; bootstrap installs `pi-mcp-adapter` and links rulesync `mcp.json` to `~/.config/mcp/mcp.json` and `~/.agents/mcp.json`
 - Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
 - Personal commands: `/pr`, `/deslop`, `/jira-list`, `/audit-effect-native-impl`
-- Personal skills in rulesync: `commit` (Jira-prefixed conventional commits; replacement for the old `git-commit-flow`); `force-pushing-ghes-default` (GH003 on github.intuit.com fork default branches)
+- Personal skills in rulesync: `commit` (Jira-prefixed conventional commits); `git-commit-flow` (group unstaged work into issue-linked commits); `force-pushing-ghes-default` (GH003 on github.intuit.com fork default branches)
 - `creating-cws-from-devstack-fork` and `developing-in-cws` sit in `.agents/skills/`, symlinked into `~/.agents/skills`. Not in `.rulesync/skills`.
 - Skills live in `~/.agents/skills`. Personal skills (`.rulesync/skills` and `.agents/skills`) are symlinked in; third-party kits come from `npx skills add --global`. `~/.claude/skills` and `~/.cursor/skills` symlink to that dir.
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
