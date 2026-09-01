@@ -389,87 +389,11 @@ fi
 OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/ObsidianMind"
 
 ob() {
-  local sess="personal"
-  local vault="$OBSIDIAN_VAULT"
-  local target_win=""
-
-  if tmux has-session -t "$sess" 2>/dev/null; then
-    # Check if any window already has nvim running in the vault
-    for win_id in $(tmux list-windows -t "$sess" -F '#{window_id}'); do
-      for pane_id in $(tmux list-panes -t "$win_id" -F '#{pane_id}'); do
-        local pcmd ppath
-        pcmd=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}')
-        ppath=$(tmux display-message -p -t "$pane_id" '#{pane_current_path}')
-        if [[ "$pcmd" == "nvim" && "$ppath" == "$vault" ]]; then
-          target_win="$win_id"
-          break 2
-        fi
-      done
-    done
-
-    if [[ -n "$target_win" ]]; then
-      tmux select-window -t "$target_win"
-    else
-      tmux new-window -t "$sess" -n "vault-vim" -c "$vault" "nvim"
-    fi
-
-    if [[ -n "$TMUX" ]]; then
-      tmux switch-client -t "$sess"
-    else
-      tmux attach-session -t "$sess"
-    fi
-  else
-    tmux new-session -d -s "$sess" -n "vault-vim" -c "$vault" "nvim"
-    if [[ -n "$TMUX" ]]; then
-      tmux switch-client -t "$sess"
-    else
-      tmux attach-session -t "$sess"
-    fi
-  fi
+  nvim -c "cd $OBSIDIAN_VAULT" "$OBSIDIAN_VAULT"
 }
 
 obc() {
-  local sess="personal"
-  local vault="$OBSIDIAN_VAULT"
-
-  if tmux has-session -t "$sess" 2>/dev/null; then
-    # Check if any pane in window 0 is running opencode in the vault
-    local found=0
-    for pane_id in $(tmux list-panes -t "$sess:0" -F '#{pane_id}' 2>/dev/null); do
-      local pane_cmd pane_path
-      pane_cmd=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}')
-      pane_path=$(tmux display-message -p -t "$pane_id" '#{pane_current_path}')
-      if [[ "$pane_cmd" == "opencode" && "$pane_path" == "$vault" ]]; then
-        found=1
-        break
-      fi
-    done
-
-    if (( found )); then
-      if [[ -n "$TMUX" ]]; then
-        tmux switch-client -t "$sess:0"
-      else
-        tmux attach-session -t "$sess:0"
-      fi
-    else
-      local win
-      win=$(tmux new-window -t "$sess" -n "vault-opencode" -c "$vault" -P -F '#{window_id}' "opencode")
-      tmux split-window -t "$win" -h -c "$vault" "nvim"
-      if [[ -n "$TMUX" ]]; then
-        tmux switch-client -t "$sess"
-      else
-        tmux attach-session -t "$sess"
-      fi
-    fi
-  else
-    tmux new-session -d -s "$sess" -n "vault-opencode" -c "$vault" "opencode"
-    tmux split-window -t "$sess:0" -h -c "$vault" "nvim"
-    if [[ -n "$TMUX" ]]; then
-      tmux switch-client -t "$sess"
-    else
-      tmux attach-session -t "$sess"
-    fi
-  fi
+  (cd "$OBSIDIAN_VAULT" && opencode)
 }
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
@@ -529,3 +453,6 @@ docker-engine() {
   echo "DOCKER_HOST: ${DOCKER_HOST:-<unset>}"
   docker version --format 'server: {{.Server.Version}} ({{.Server.Os}}/{{.Server.Arch}})' 2>/dev/null || echo 'server: unreachable'
 }
+
+# bun completions
+[ -s "/Users/aira/.bun/_bun" ] && source "/Users/aira/.bun/_bun"

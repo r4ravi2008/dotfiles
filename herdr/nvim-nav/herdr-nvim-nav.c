@@ -46,10 +46,9 @@ static int build_marker_path(const char *pane, char *out, size_t out_len) {
 
 /*
  * Neovim writes its PID to a file named after the pane on entry and removes it
- * on exit -- herdr has no equivalent of tmux's `@pane-is-vim` pane option, and
- * asking herdr what a pane is running would mean loading its binary, which is
- * the cost we are here to avoid. A PID that no longer exists was left by a hard
- * crash: drop the marker so the pane stops being misread.
+ * on exit. Asking herdr what a pane is running would mean loading its binary,
+ * which is the cost we are here to avoid. A PID that no longer exists was left
+ * by a hard crash: drop the marker so the pane stops being misread.
  */
 static int marker_says_vim(const char *pane) {
     char path[PATH_BUF];

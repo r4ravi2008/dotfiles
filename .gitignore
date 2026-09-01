@@ -42,6 +42,5 @@ opencode/bun.lock
 opencode/.opencode/
 
 # Rust build artifacts
-tmux/pane-minimap-rs/target/
 herdr/pane-minimap/target/
 herdr/pane-minimap/herdr-pane-minimap

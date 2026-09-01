@@ -10,7 +10,6 @@ return {
   cond = vim.env.HERDR_ENV == "1" and vim.uv.fs_stat(lua_mod) ~= nil,
   lazy = false,
   opts = {
-    with_tmux = false,
     keymaps = {
       left = { "<M-h>" },
       down = { "<M-j>" },

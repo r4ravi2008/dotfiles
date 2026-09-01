@@ -11,7 +11,7 @@ return {
         height = 0, -- 0 means full height
       },
     }
-    -- Fix scrambled terminal UI (lazygit) when navigating between tmux panes
+    -- Fix scrambled terminal UI (lazygit) when navigating between Herdr panes
     -- The issue occurs when panes exist and zoom state changes
     local function refresh_lazygit_terminal()
       vim.schedule(function()
@@ -51,10 +51,10 @@ return {
       desc = "Manually refresh lazygit terminal to fix UI glitches"
     })
 
-    -- Refresh on focus gained (returning to nvim pane from tmux)
+    -- Refresh on focus gained (returning to nvim pane from Herdr)
     vim.api.nvim_create_autocmd("FocusGained", {
       callback = function()
-        -- Add a slight delay to let tmux settle the dimensions
+        -- Add a slight delay to let the multiplexer settle the dimensions
         vim.defer_fn(refresh_lazygit_terminal, 150)
       end,
     })

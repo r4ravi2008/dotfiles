@@ -1,7 +1,6 @@
 # herdr-nvim-nav
 
-Seamless `Ctrl+h/j/k/l` navigation across [herdr] panes and Neovim splits —
-the [vim-tmux-navigator] experience, for herdr.
+Seamless `Ctrl+h/j/k/l` navigation across [herdr] panes and Neovim splits.
 
 > **Neovim-only, socket-based, no per-keystroke process.** If you want **Vim**
 > support too, or a plain shell implementation, see
@@ -14,12 +13,10 @@ plain pane, the chord moves herdr's focus; from a pane running Neovim, the chord
 is handed to Neovim.
 
 [herdr]: https://herdr.dev
-[vim-tmux-navigator]: https://github.com/christoomey/vim-tmux-navigator
 
 ## How it works
 
-tmux answers "is this pane Neovim?" with a pane option (`@pane-is-vim`) and a
-conditional keybinding (`if -F`). herdr has neither, so this plugin reconstructs
+herdr has no pane option for "is this Neovim?", so this plugin reconstructs
 the decision:
 
 - **Neovim** writes its PID to a marker file named after the pane
@@ -43,8 +40,6 @@ top of [`herdr-nvim-nav.c`](herdr-nvim-nav.c) for the measurements.
 - **Neovim** (0.9+ recommended, for `vim.uv`)
 - A C compiler (`cc` / `clang` / `gcc`) — used by the install-time build. GitHub
   `herdr plugin install` runs it for you; only a local `plugin link` needs it on hand.
-- **christoomey/vim-tmux-navigator** — only if you run Neovim under tmux
-  (`with_tmux`); herdr-only setups don't need it.
 - macOS or Linux
 
 ## Install
@@ -109,14 +104,13 @@ The Neovim side is a plugin-manager-agnostic module
 ([`lua/herdr-nvim-nav/init.lua`](lua/herdr-nvim-nav/init.lua)). Install it like
 any Neovim plugin and call `setup()`. It maintains the pane marker the herdr
 action reads, and maps `<C-h/j/k/l>` (plus the arrow variants) to move within
-Neovim's splits, falling through to herdr — or to tmux when running under tmux.
+Neovim's splits, falling through to herdr at a split edge.
 
 **lazy.nvim:**
 
 ```lua
 {
   'aimdevlee/herdr-nvim-nav',
-  dependencies = { 'christoomey/vim-tmux-navigator' }, -- omit if with_tmux = false
   config = function()
     require('herdr-nvim-nav').setup()
   end,
@@ -128,26 +122,17 @@ Neovim's splits, falling through to herdr — or to tmux when running under tmux
 ```lua
 use {
   'aimdevlee/herdr-nvim-nav',
-  requires = { 'christoomey/vim-tmux-navigator' }, -- omit if with_tmux = false
   config = function() require('herdr-nvim-nav').setup() end,
 }
 ```
 
 **Manual** (any runtimepath): drop `lua/herdr-nvim-nav/` on your runtimepath and
-`require('herdr-nvim-nav').setup{ with_tmux = false }` from your init.
-
-#### tmux fallback
-
-`christoomey/vim-tmux-navigator` is used **only** when Neovim runs under tmux
-(not herdr). `with_tmux` is auto-detected from `$TMUX`, so tmux users need no
-config. If you never run Neovim under tmux, drop the dependency and set
-`with_tmux = false` — nothing tmux-related is loaded.
+`require('herdr-nvim-nav').setup()` from your init.
 
 #### Options
 
 ```lua
 require('herdr-nvim-nav').setup({
-  with_tmux = nil,          -- nil = auto-detect $TMUX; true/false to force
   keymaps = {               -- lhs list per direction; {} disables a direction
     left  = { '<C-h>', '<C-Left>' },
     down  = { '<C-j>', '<C-Down>' },

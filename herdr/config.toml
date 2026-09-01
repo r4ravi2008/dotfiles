@@ -1,5 +1,5 @@
 onboarding = false
-# Herdr keybindings aligned with the tmux + Neovim workflow in this repo.
+# Herdr keybindings aligned with the Neovim workflow in this repo.
 
 [keys]
 prefix = "ctrl+a"
@@ -153,8 +153,8 @@ description = "review the agent's last reply"
 name = "tokyo-night"
 auto_switch = false
 
-# Pane layout popup: herdr-pane-minimap flashes a tmux-style map (plugin
-# popup, 52x24) only after a pane hop while the tab is zoomed — then closes.
+# Pane layout popup: herdr-pane-minimap flashes a map (plugin popup, 52x24)
+# only after a pane hop while the tab is zoomed, then closes.
 # Plugin is linked from ~/.dotfiles/herdr/pane-minimap; the watcher starts on
 # server restore. After a live `plugin link`, run that plugin's startup.sh once
 # (or restart the Herdr server) so the watcher picks up the binary.

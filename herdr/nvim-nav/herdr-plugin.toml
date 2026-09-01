@@ -5,9 +5,9 @@ min_herdr_version = "0.7.0"
 description = "Alt+h/j/k/l across herdr panes and Neovim splits (tilish), via a C socket action"
 platforms = ["macos", "linux"]
 
-# herdr has no conditional keybindings, so each direction is an action that makes
-# the choice tmux made with `if -F "#{@pane-is-vim}"`: hand the chord to Neovim
-# when it owns the focused pane, otherwise move herdr's pane focus.
+# herdr has no conditional keybindings, so each direction is an action that
+# hands the chord to Neovim when it owns the focused pane, otherwise moves
+# herdr's pane focus.
 #
 # The "is this Neovim?" answer comes from a marker file that Neovim itself
 # maintains (see the Neovim half, lua/herdr-nvim-nav/), so no second process is needed

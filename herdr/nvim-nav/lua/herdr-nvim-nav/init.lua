@@ -1,8 +1,8 @@
 -- herdr-nvim-nav -- the Neovim half.
 --
--- Seamless Alt+h/j/k/l across Neovim splits and the surrounding multiplexer
--- (tilish-style; this dotfiles fork). Move within Neovim's windows, and at a
--- split edge cross into the neighbouring herdr pane (or tmux pane under tmux).
+-- Seamless Alt+h/j/k/l across Neovim splits and the surrounding Herdr
+-- multiplexer (tilish-style; this dotfiles fork). Move within Neovim's windows,
+-- and at a split edge cross into the neighbouring herdr pane.
 --
 -- Plugin-manager agnostic: `require('herdr-nvim-nav').setup{ ... }`. See the
 -- README for lazy.nvim / packer / manual install snippets.
@@ -13,13 +13,8 @@ local uv = vim.uv or vim.loop
 
 local DIRECTIONS = { 'left', 'down', 'up', 'right' }
 local WINCMD = { left = 'h', down = 'j', up = 'k', right = 'l' }
-local TMUX_DIR = { left = 'Left', down = 'Down', up = 'Up', right = 'Right' }
 
 local defaults = {
-  -- true / false forces tmux fallback on / off. nil auto-detects from $TMUX,
-  -- so tmux users get it without config and herdr-only users pull in nothing.
-  with_tmux = nil,
-
   -- lhs list per direction. Override to remap, or set a direction to {} to skip.
   -- Dotfiles default: Alt+hjkl navigate (Ctrl+hjkl is resize via herdr-splits).
   keymaps = {
@@ -56,21 +51,10 @@ function M.setup(opts)
   local herdr_pane = vim.env.HERDR_PANE_ID
   local in_herdr = herdr_pane ~= nil and herdr_pane ~= ''
 
-  local use_tmux = opts.with_tmux
-  if use_tmux == nil then
-    use_tmux = vim.env.TMUX ~= nil and vim.env.TMUX ~= ''
-  end
-
-  -- Under tmux we call TmuxNavigate* ourselves for edge fallthrough. Disable
-  -- vim-tmux-navigator's own maps if it is present.
-  if use_tmux then
-    vim.g.tmux_navigator_no_mappings = 1
-  end
-
   -- Tell the herdr `herdr-nvim-nav` plugin that Neovim owns this pane, so its
-  -- alt+h/j/k/l actions forward the chord here instead of moving panes. herdr
-  -- has no equivalent of tmux's `@pane-is-vim` pane option; a marker file named
-  -- after the pane lets the C action decide without spawning `herdr`/`jq`.
+  -- alt+h/j/k/l actions forward the chord here instead of moving panes. A
+  -- marker file named after the pane lets the C action decide without spawning
+  -- `herdr`/`jq`.
   local marker_owned = true
 
   local function marker_path()
@@ -203,14 +187,11 @@ function M.setup(opts)
       return -- moved within Neovim
     end
 
-    -- At a split edge: cross into the surrounding multiplexer.
+    -- At a split edge: cross into the surrounding Herdr pane.
     if in_herdr then
       if not focus_via_socket(dir) then
         vim.fn.system({ herdr_bin, 'pane', 'focus', '--direction', dir, '--current' })
       end
-    elseif use_tmux then
-      -- Requires christoomey/vim-tmux-navigator. Only reached under tmux.
-      pcall(vim.cmd, 'TmuxNavigate' .. TMUX_DIR[dir])
     end
   end
 

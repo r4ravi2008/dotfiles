@@ -13,7 +13,7 @@ local opts = { noremap = true, silent = true }
 pcall(vim.keymap.del, { "n", "i", "v" }, "<A-j>")
 pcall(vim.keymap.del, { "n", "i", "v" }, "<A-k>")
 
--- smart-splits under tmux; herdr-nvim-nav (Alt move) + herdr-splits (Ctrl resize)
+-- smart-splits outside Herdr; herdr-nvim-nav (Alt move) + herdr-splits (Ctrl resize)
 -- inside a Herdr pane.
 local pane_navigation = require("config.pane-navigation")
 local in_herdr = vim.env.HERDR_ENV == "1"
@@ -25,7 +25,6 @@ if in_herdr then
   local ok, nav = pcall(require, "herdr-nvim-nav")
   if ok then
     nav.setup({
-      with_tmux = false,
       keymaps = {
         left = { "<M-h>" },
         down = { "<M-j>" },

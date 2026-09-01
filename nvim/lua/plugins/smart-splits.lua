@@ -1,19 +1,15 @@
--- smart-splits.nvim: seamless navigation and resizing across Neovim splits and tmux panes
--- Integrates with tmux-tilish via @tilish-smartsplits 'on'
+-- smart-splits.nvim: navigation and resizing across Neovim splits outside Herdr.
+-- Under Herdr, herdr-nvim-nav and herdr-splits own these chords instead.
 --
--- Keybinding scheme (matching tilish conventions):
---   Alt+hjkl          - Move between splits/panes (navigation)
---   Ctrl+hjkl         - Resize splits/panes
+-- Keybinding scheme:
+--   Alt+hjkl          - Move between splits
+--   Ctrl+hjkl         - Resize splits
 --   <leader><leader>hjkl - Swap buffers between Neovim windows
 return {
   "mrjones2014/smart-splits.nvim",
   cond = vim.env.HERDR_ENV ~= "1",
-  lazy = false, -- must not lazy-load; sets @pane-is-vim for tmux integration
+  lazy = false,
   opts = {
-    -- allow navigation when tmux pane is zoomed; tmux select-pane -Z
-    -- (set in tmux.conf.local) preserves zoom on the target pane
-    disable_multiplexer_nav_when_zoomed = false,
-    -- at edge of all neovim splits, hand off to tmux pane navigation
     at_edge = "wrap",
   },
   config = function(_, opts)

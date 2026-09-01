@@ -27,47 +27,16 @@ local function move_backend()
 end
 
 local directions = {
-  h = { name = "left", tmux = "L", vim = "h" },
-  j = { name = "down", tmux = "D", vim = "j" },
-  k = { name = "up", tmux = "U", vim = "k" },
-  l = { name = "right", tmux = "R", vim = "l" },
+  h = { name = "left", vim = "h" },
+  j = { name = "down", vim = "j" },
+  k = { name = "up", vim = "k" },
+  l = { name = "right", vim = "l" },
 }
 
 local function direction(key)
   local value = directions[key]
   assert(value, "unsupported pane direction: " .. tostring(key))
   return value
-end
-
-local function has_split_in_direction(vim_dir)
-  return vim.fn.winnr(vim_dir) ~= vim.fn.winnr()
-end
-
-local function tmux_is_zoomed()
-  if not (vim.env.TMUX and vim.env.TMUX_PANE) then
-    return false
-  end
-
-  local zoomed = vim.trim(
-    vim.fn.system({ "tmux", "display-message", "-p", "-t", vim.env.TMUX_PANE, "#{window_zoomed_flag}" })
-  )
-  return vim.v.shell_error == 0 and zoomed == "1"
-end
-
-local function tmux_select_pane_preserve_zoom(tmux_dir)
-  if not vim.env.TMUX then
-    return false
-  end
-
-  if vim.env.TMUX_PANE then
-    vim.fn.system({ "tmux", "select-pane", "-t", vim.env.TMUX_PANE, "-" .. tmux_dir, "-Z" })
-    if vim.v.shell_error == 0 then
-      return true
-    end
-  end
-
-  vim.fn.system({ "tmux", "select-pane", "-" .. tmux_dir, "-Z" })
-  return vim.v.shell_error == 0
 end
 
 function M.move(key)
@@ -81,12 +50,6 @@ function M.move(key)
       vim.fn.system({ "herdr", "pane", "focus", "--direction", dir.name, "--current" })
     end
     return
-  end
-
-  if not has_split_in_direction(dir.vim) and tmux_is_zoomed() then
-    if tmux_select_pane_preserve_zoom(dir.tmux) then
-      return
-    end
   end
 
   local backend = move_backend()
