@@ -73,14 +73,15 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, tmux, Ghostty, lazy
 
 ### AI Agents (OpenCode, Cursor, Claude Code, Windsurf, etc.)
 - Unified rules via rulesync
-- Supported tools: OpenCode, Cursor, Claude Code, Windsurf, Codex CLI
+- Supported tools: OpenCode, Cursor, Claude Code, Windsurf, Codex CLI, Pi
 - OpenCode MCP config: generated at `ai-agents/opencode.json` (symlinked to `~/.config/opencode/opencode.json`)
 - Claude Code: commands/agents/skills in `.claude/`, MCP merged into `~/.claude.json` (user-scope) from rulesync `mcp.json`
+- Pi: no built-in MCP; bootstrap installs `pi-mcp-adapter` and links rulesync `mcp.json` to `~/.config/mcp/mcp.json` and `~/.agents/mcp.json`
 - Windsurf: generates `.codeiumignore` (project-level ignore file) and uses AGENTS.md for rules
 - Personal commands: `/pr`, `/deslop`, `/jira-list`, `/audit-effect-native-impl`
 - Personal skills in rulesync: `commit` (Jira-prefixed conventional commits; replacement for the old `git-commit-flow`); `force-pushing-ghes-default` (GH003 on github.intuit.com fork default branches)
 - `creating-cws-from-devstack-fork` and `developing-in-cws` sit in `.agents/skills/`, symlinked into `~/.agents/skills`. Not in `.rulesync/skills`.
-- Obsidian skills in rulesync. Bootstrap installs Matt Pocock's engineering + productivity kit (`tdd`, `grill-me`, `setup-matt-pocock-skills`, …) into `~/.agents/skills`, `~/.claude/skills`, and `~/.cursor/skills` (git clone; CWS Node 18 cannot run `npx skills`).
+- Obsidian skills in rulesync. Bootstrap installs Matt Pocock's engineering + productivity kit and pstack into `~/.agents/skills` (Pi, Codex, OpenCode read that dir). Claude/Cursor still get copies. pstack names that collide (`tdd`, `teach`) install as `pstack-tdd` / `pstack-teach`. Git clone; CWS Node 18 cannot run `npx skills`.
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
 - CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+shift+p` folder, `prefix+shift+y` last reply, `prefix+shift+a` capture). Needs Bun.
 - Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (tmux-style popup while hopping zoomed panes). Tmux `pane-minimap` popup is unchanged.

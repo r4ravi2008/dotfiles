@@ -76,7 +76,7 @@ npx rulesync generate
 
 ### Commands (4)
 
-Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills). `bootstrap.sh` clones that repo and copies the engineering + productivity skills into `~/.agents/skills` (and Claude/Cursor skill dirs).
+Personal slash commands. Engineering workflows (`/tdd`, `/grill-me`, `/code-review`, …) come from [Matt Pocock's skills](https://github.com/mattpocock/skills). `bootstrap.sh` clones that repo plus [pstack](https://github.com/cursor/plugins/tree/main/pstack) into `~/.agents/skills` (Pi, Codex, and OpenCode load that folder). Claude/Cursor still get copies.
 
 | Command | Description |
 |---------|-------------|
@@ -102,6 +102,8 @@ Configured in `.rulesync/mcp.json`.
 | `DAST-Orch` | CWS MCP stream | Enabled (URL) |
 | `slack-mcp` | Slack MCP | Enabled (HTTP + OAuth) |
 | `open-computer-use` | Desktop computer use (`open-computer-use mcp`) | Enabled (stdio) |
+
+Pi loads the same file via `pi-mcp-adapter` (`pi install npm:pi-mcp-adapter`). Bootstrap links this file to `~/.config/mcp/mcp.json` and `~/.agents/mcp.json`.
 
 ## Customization
 

@@ -85,6 +85,7 @@ Notes:
 
 - Do not hand-edit generated files like `ai-agents/AGENTS.md` or `ai-agents/opencode.json`.
 - `bootstrap.sh` will symlink `ai-agents/opencode.json` to `~/.config/opencode/opencode.json` when it exists.
+- Pi has no built-in MCP. Bootstrap installs `pi-mcp-adapter` and links `ai-agents/.rulesync/mcp.json` to `~/.config/mcp/mcp.json` and `~/.agents/mcp.json`.
 
 ## Repo layout
 
@@ -110,7 +111,7 @@ Notes:
 - Optional: `herdr` 0.8.0+ for agent workspaces and Neovim pane navigation
 - Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share.
 - Bootstrap installs Bun so `plannotator/herdr-annotate` can fetch plannotator-tui. `plannotator annotate` still opens a browser.
-- Bootstrap also installs [Matt Pocock's skills](https://github.com/mattpocock/skills) (engineering + productivity) into `~/.agents/skills`
+- Bootstrap also installs [Matt Pocock's skills](https://github.com/mattpocock/skills) (engineering + productivity) and [pstack](https://github.com/cursor/plugins/tree/main/pstack) into `~/.agents/skills` (shared by Pi, Codex, OpenCode)
 
 ## Uninstall / rollback
 

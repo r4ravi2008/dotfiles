@@ -458,34 +458,135 @@ _run_with_timeout() {
 	fi
 }
 
+# Shared skill dests. ~/.agents/skills is canonical (Pi, Codex, OpenCode).
+# Claude Code and Cursor still need their own skill dirs.
+_skill_install_dests() {
+	local dest
+	for dest in \
+		"$HOME/.agents/skills" \
+		"$HOME/.claude/skills" \
+		"$HOME/.cursor/skills"
+	do
+		mkdir -p "$dest"
+		printf '%s\n' "$dest"
+	done
+}
+
+_set_skill_frontmatter_name() {
+	local skill_md="$1"
+	local new_name="$2"
+	python3 - "$skill_md" "$new_name" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+new_name = sys.argv[2]
+text = path.read_text()
+if not text.startswith("---"):
+    raise SystemExit(1)
+parts = text.split("---", 2)
+if len(parts) < 3:
+    raise SystemExit(1)
+fm = parts[1]
+replaced = False
+lines = []
+for line in fm.splitlines(keepends=True):
+    if not replaced and line.startswith("name:"):
+        nl = "\n" if line.endswith("\n") else ""
+        lines.append(f"name: {new_name}{nl}")
+        replaced = True
+    else:
+        lines.append(line)
+if not replaced:
+    lines.insert(0, f"name: {new_name}\n")
+path.write_text("---" + "".join(lines) + "---" + parts[2])
+PY
+}
+
+# Pi requires name: lowercase a-z, 0-9, hyphens. pstack ships display names
+# like "Poteto Mode"; rewrite those to the folder slug after copy.
+_ensure_valid_skill_name() {
+	local skill_md="$1"
+	local folder_name="$2"
+	local rc=0
+	python3 - "$skill_md" "$folder_name" <<'PY' || rc=$?
+from pathlib import Path
+import re, sys
+path = Path(sys.argv[1])
+valid = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+text = path.read_text()
+if not text.startswith("---"):
+    raise SystemExit(0)
+parts = text.split("---", 2)
+if len(parts) < 3:
+    raise SystemExit(0)
+name = None
+for line in parts[1].splitlines():
+    if line.startswith("name:"):
+        name = line.split(":", 1)[1].strip().strip('"').strip("'")
+        break
+if name is not None and valid.match(name):
+    raise SystemExit(0)
+raise SystemExit(2)
+PY
+	case "$rc" in
+	0) return 0 ;;
+	2) _set_skill_frontmatter_name "$skill_md" "$folder_name" ;;
+	*) return 0 ;;
+	esac
+}
+
+_publish_skill_dir() {
+	local src="$1"
+	local name="$2"
+	local dest
+	while IFS= read -r dest; do
+		rm -rf "$dest/$name"
+		cp -R "$src" "$dest/$name"
+		_ensure_valid_skill_name "$dest/$name/SKILL.md" "$name" \
+			|| log_warn "Could not sanitize skill name for $name"
+	done < <(_skill_install_dests)
+	log_info "Installed skill $name"
+}
+
 _install_skill_dirs() {
 	local src_root="$1"
-	local skill dest name
+	local collide_prefix="${2:-}"
+	local skill name install_name work tmp
 	[[ -d "$src_root" ]] || return 1
 	while IFS= read -r skill; do
 		[[ -f "$skill/SKILL.md" ]] || continue
 		name="$(basename "$skill")"
-		for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
-			mkdir -p "$dest"
-			rm -rf "$dest/$name"
-			cp -R "$skill" "$dest/$name"
-		done
-		log_info "Installed skill $name"
+		install_name="$name"
+		if [[ -n "$collide_prefix" && -d "$HOME/.agents/skills/$name" ]]; then
+			install_name="${collide_prefix}-${name}"
+		fi
+		if [[ "$install_name" == "$name" ]]; then
+			_publish_skill_dir "$skill" "$install_name"
+			continue
+		fi
+		tmp="$(mktemp -d)"
+		work="$tmp/$install_name"
+		cp -R "$skill" "$work"
+		_set_skill_frontmatter_name "$work/SKILL.md" "$install_name" \
+			|| log_warn "Could not rename skill frontmatter for $install_name"
+		_publish_skill_dir "$work" "$install_name"
+		rm -rf "$tmp"
 	done < <(find "$src_root" -mindepth 1 -maxdepth 1 -type d)
 }
 
 _install_skills_from_github() {
 	local repo_url="$1"
 	local sparse_path="$2"
+	local collide_prefix="${3:-}"
 	local tmp
 	tmp="$(mktemp -d)"
 	log_info "Cloning skills from $repo_url ($sparse_path)"
 	if git clone --depth 1 --filter=blob:none --sparse "$repo_url" "$tmp/repo" >/dev/null 2>&1 \
 		&& git -C "$tmp/repo" sparse-checkout set "$sparse_path" >/dev/null 2>&1; then
 		if [[ -f "$tmp/repo/$sparse_path/SKILL.md" ]]; then
-			_install_skill_dirs "$(dirname "$tmp/repo/$sparse_path")"
+			_install_skill_dirs "$(dirname "$tmp/repo/$sparse_path")" "$collide_prefix"
 		else
-			_install_skill_dirs "$tmp/repo/$sparse_path"
+			_install_skill_dirs "$tmp/repo/$sparse_path" "$collide_prefix"
 		fi
 		rm -rf "$tmp"
 		return 0
@@ -497,14 +598,8 @@ _install_skills_from_github() {
 _install_bundled_skill() {
 	local name="$1"
 	local src="$DOTFILES_DIR/ai-agents/.rulesync/skills/$name"
-	local dest
 	[[ -d "$src" ]] || return 1
-	for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
-		mkdir -p "$dest"
-		rm -rf "$dest/$name"
-		cp -R "$src" "$dest/$name"
-	done
-	log_info "Installed bundled skill $name"
+	_publish_skill_dir "$src" "$name"
 }
 
 _install_global_skills_pkg() {
@@ -558,7 +653,7 @@ _install_global_skills_pkg() {
 # CWS Node 18 cannot run `npx skills` (needs util.styleText / Node 20+).
 # Clone the kit and copy engineering + productivity skills into agent dirs.
 _install_matt_pocock_skills() {
-	local tmp src dest name
+	local tmp
 	tmp="$(mktemp -d)"
 	log_info "Installing Matt Pocock skills (engineering + productivity)"
 	if ! git clone --depth 1 --filter=blob:none --sparse https://github.com/mattpocock/skills.git "$tmp/repo" >/dev/null 2>&1; then
@@ -571,21 +666,34 @@ _install_matt_pocock_skills() {
 		rm -rf "$tmp"
 		return 1
 	fi
-	while IFS= read -r src; do
-		[[ -f "$src/SKILL.md" ]] || continue
-		name="$(basename "$src")"
-		for dest in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills"; do
-			mkdir -p "$dest"
-			rm -rf "$dest/$name"
-			cp -R "$src" "$dest/$name"
-		done
-	done < <(find "$tmp/repo/skills/engineering" "$tmp/repo/skills/productivity" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+	_install_skill_dirs "$tmp/repo/skills/engineering"
+	_install_skill_dirs "$tmp/repo/skills/productivity"
 	rm -rf "$tmp"
 	if [[ -d "$HOME/.agents/skills/setup-matt-pocock-skills" ]]; then
 		log_success "Installed Matt Pocock skills"
 		return 0
 	fi
 	log_warn "Matt Pocock skills clone finished but setup-matt-pocock-skills is missing"
+	return 1
+}
+
+# Full pstack catalog (cursor/plugins mirror). Names that already exist from
+# another kit (mattpocock tdd/teach) are installed as pstack-<name>.
+_install_pstack_skills() {
+	log_info "Installing pstack skills"
+	if _install_skills_from_github "https://github.com/cursor/plugins.git" "pstack/skills" "pstack"; then
+		:
+	elif _install_skills_from_github "https://github.com/backnotprop/pstack.git" "skills" "pstack"; then
+		:
+	else
+		log_warn "Could not clone pstack skills"
+		return 1
+	fi
+	if [[ -d "$HOME/.agents/skills/unslop" || -d "$HOME/.agents/skills/architect" ]]; then
+		log_success "Installed pstack skills"
+		return 0
+	fi
+	log_warn "pstack clone finished but expected skills are missing"
 	return 1
 }
 
@@ -1074,6 +1182,37 @@ setup_ai_agents() {
 		create_symlink "$DOTFILES_DIR/cursor/mcp.json" "$HOME/.cursor/mcp.json"
 	fi
 
+	# Pi has no built-in MCP. pi-mcp-adapter reads the shared user-global files.
+	# Do not symlink ~/.pi/agent/mcp.json — the adapter may write overrides there.
+	if [[ -f "$DOTFILES_DIR/ai-agents/.rulesync/mcp.json" ]]; then
+		mkdir -p "$HOME/.config/mcp" "$HOME/.agents"
+		create_symlink "$DOTFILES_DIR/ai-agents/.rulesync/mcp.json" "$HOME/.config/mcp/mcp.json"
+		create_symlink "$DOTFILES_DIR/ai-agents/.rulesync/mcp.json" "$HOME/.agents/mcp.json"
+	fi
+
+	if command -v pi >/dev/null 2>&1; then
+		local pi_settings="$HOME/.pi/agent/settings.json"
+		local pi_mcp_installed=0
+		if [[ -f "$pi_settings" ]] && command -v jq >/dev/null 2>&1; then
+			if jq -e '
+				(.packages // [])
+				| map(if type == "string" then . else (.source // "") end)
+				| any(test("^npm:pi-mcp-adapter(@|$)") or . == "pi-mcp-adapter")
+			' "$pi_settings" >/dev/null 2>&1; then
+				pi_mcp_installed=1
+			fi
+		fi
+		if (( pi_mcp_installed )); then
+			log_info "pi-mcp-adapter already installed"
+		elif pi install npm:pi-mcp-adapter --no-approve; then
+			log_success "Installed pi-mcp-adapter (so Pi loads rulesync MCP servers)"
+		else
+			log_warn "Could not install pi-mcp-adapter; Pi will not load MCP servers"
+		fi
+	else
+		log_warn "pi not found; skipping pi-mcp-adapter install"
+	fi
+
 	# Cursor commands/agents/rules/skills are generated by rulesync into ai-agents/.cursor.
 	# Cursor may already have its own ~/.cursor/{commands,agents,...} directories, so we sync
 	# contents instead of symlinking the whole directory.
@@ -1164,6 +1303,7 @@ setup_ai_agents() {
 	fi
 
 	_install_matt_pocock_skills || true
+	_install_pstack_skills || true
 	configure_plannotator_local_only || true
 
 	log_success "AI agent configurations set up"
