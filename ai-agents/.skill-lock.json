@@ -771,7 +771,7 @@
       "skillPath": "skills/hunk-review/SKILL.md",
       "skillFolderHash": "a1c5638dec5611780963bd68a347231f8baf9c62",
       "installedAt": "2026-09-01T03:58:31.951Z",
-      "updatedAt": "2026-09-01T03:58:31.951Z"
+      "updatedAt": "2026-09-01T06:04:10.948Z"
     },
     "plannotator-compound": {
       "source": "backnotprop/plannotator",
@@ -780,7 +780,7 @@
       "skillPath": "apps/skills/extra/plannotator-compound/SKILL.md",
       "skillFolderHash": "e7cb3bf5836705facedb2f94c6648f269d3f0748",
       "installedAt": "2026-09-01T03:58:36.863Z",
-      "updatedAt": "2026-09-01T03:58:36.863Z"
+      "updatedAt": "2026-09-01T06:04:08.629Z"
     },
     "plannotator-setup-goal": {
       "source": "backnotprop/plannotator",
@@ -789,7 +789,7 @@
       "skillPath": "apps/skills/extra/plannotator-setup-goal/SKILL.md",
       "skillFolderHash": "29d5d60c2b8a88c1786d7bbdbbfa37e44b64f6a5",
       "installedAt": "2026-09-01T03:58:36.865Z",
-      "updatedAt": "2026-09-01T03:58:36.865Z"
+      "updatedAt": "2026-09-01T06:04:08.630Z"
     },
     "plannotator-visual-explainer": {
       "source": "backnotprop/plannotator",
