@@ -89,7 +89,7 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `herdr-pane-minimap` | plugin linked; binary `herdr-pane-minimap` exists in the plugin dir **or** bootstrap warn `Could not build herdr-pane-minimap` / `Could not link` |
 | `kitty_graphics` | `true` in `~/.config/herdr/config.toml` |
 | Agent keys | `previous_agent`/`next_agent`/`focus_agent` as above; `dleen.herdr-agents.open` on `prefix+a` |
-| Annotate keys | `annotate.capture` `prefix+shift+a`; `annotate.open` `prefix+shift+p`; `annotate.last` `prefix+shift+y`; `copy_on_select = false` in the CWS-copied config |
+| Annotate keys | `annotate.open` `prefix+f` / `prefix+ctrl+p`; `annotate.last` `prefix+ctrl+y`; `annotate.capture` `prefix+u`; `copy_on_select = false` in herdr config (and the CWS-copied config) |
 | Annotate deps | `bun` on PATH (plugin build fetches plannotator-tui) **or** bootstrap warn |
 
 ## OAuth callbacks

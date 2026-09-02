@@ -1,0 +1,22 @@
+id = "herdr-session-titles"
+name = "Session Titles"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+description = "Copy agent OSC titles into pane metadata so prefix+g shows session names"
+platforms = ["macos", "linux"]
+
+# Detached watcher: pane.updated is not a legal [[events]] hook (high volume).
+[[startup]]
+command = ["bash", "startup.sh"]
+platforms = ["macos", "linux"]
+
+# Low-volume watchdog so a dead watcher comes back without occupying a slot.
+[[events]]
+on = "pane.created"
+command = ["bash", "startup.sh"]
+platforms = ["macos", "linux"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["bash", "startup.sh"]
+platforms = ["macos", "linux"]

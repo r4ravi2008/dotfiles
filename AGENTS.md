@@ -77,8 +77,8 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, Ghostty, lazygit, H
 - `creating-cws-from-devstack-fork` and `developing-in-cws` sit in `.agents/skills/`, symlinked into `~/.agents/skills`. Not in `.rulesync/skills`.
 - Skills live in `~/.agents/skills`. Personal skills (`.rulesync/skills` and `.agents/skills`) are symlinked in; third-party kits come from `npx skills add --global`. `~/.claude/skills` and `~/.cursor/skills` symlink to that dir.
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
-- CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+shift+p` folder, `prefix+shift+y` last reply, `prefix+shift+a` capture). Needs Bun.
-- Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`) and builds/links `herdr-pane-minimap` (popup while hopping zoomed panes).
+- CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+f` / `prefix+ctrl+p` folder, or the Markdown file matching the terminal selection; `prefix+ctrl+y` last reply; `prefix+u` capture). Needs Bun. Laptop Herdr sets `copy_on_select = false` so capture and selection-open can read the mouse selection.
+- Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`), builds/links `herdr-pane-minimap` (Spaces sidebar layout map), and links `herdr-session-titles` (copies agent OSC titles into pane metadata so prefix+g shows session names).
 
 #### Rulesync (Source of Truth)
 

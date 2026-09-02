@@ -722,6 +722,42 @@
         },
         "claude-opus-5-thinking-medium-fast": {
           "name": "Opus 5 1M Medium Thinking Fast"
+        },
+        "cursor-grok-4.6-high-fast": {
+          "name": "Cursor Grok 4.6 Fast"
+        },
+        "cursor-grok-4.6-low": {
+          "name": "Cursor Grok 4.6 Low"
+        },
+        "cursor-grok-4.6-low-fast": {
+          "name": "Cursor Grok 4.6 Low Fast"
+        },
+        "cursor-grok-4.6-medium": {
+          "name": "Cursor Grok 4.6 Medium"
+        },
+        "cursor-grok-4.6-medium-fast": {
+          "name": "Cursor Grok 4.6 Medium Fast"
+        },
+        "cursor-grok-4.6-high": {
+          "name": "Cursor Grok 4.6"
+        },
+        "cursor-grok-4.6-xhigh": {
+          "name": "Cursor Grok 4.6 Extra High"
+        },
+        "cursor-grok-4.6-xhigh-fast": {
+          "name": "Cursor Grok 4.6 Extra High Fast"
+        },
+        "claude-opus-5-thinking-xhigh": {
+          "name": "Opus 5 1M Extra High Thinking"
+        },
+        "claude-opus-5-thinking-xhigh-fast": {
+          "name": "Opus 5 1M Extra High Thinking Fast"
+        },
+        "claude-opus-5-thinking-max": {
+          "name": "Opus 5 1M Max Thinking"
+        },
+        "claude-opus-5-thinking-max-fast": {
+          "name": "Opus 5 1M Max Thinking Fast"
         }
       }
     }

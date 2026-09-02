@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-// Match tmux/pane-minimap-rs CANVAS_W / CANVAS_H.
+// Default canvas 46×18 (integer scale from the original pane-minimap helper).
 pub const DEFAULT_GRID_COLS: i32 = 46;
 pub const DEFAULT_GRID_ROWS: i32 = 18;
 pub const MIN_GRID_COLS: i32 = 8;

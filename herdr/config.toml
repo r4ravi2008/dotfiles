@@ -117,16 +117,23 @@ type = "plugin_action"
 command = "dleen.herdr-agents.open"
 description = "pick an agent"
 
-# annotate remaps: prefix+a is the agent picker, prefix+o cycles panes,
-# prefix+shift+o opens notifications.
+# Annotate. Folder: prefix then f (or keep holding Ctrl and press p).
+# Comment: prefix then u. Ctrl+U is line-kill in the shell if prefix is missed.
+# Shift+letter is just a capital letter; prefix+shift+p is Herdr's rename_pane.
 [[keys.command]]
-key = "prefix+shift+a"
+key = "prefix+u"
 type = "plugin_action"
 command = "annotate.capture"
 description = "annotate selected terminal text"
 
 [[keys.command]]
-key = "prefix+shift+c"
+key = "prefix+ctrl+u"
+type = "plugin_action"
+command = "annotate.capture"
+description = "annotate selected terminal text"
+
+[[keys.command]]
+key = "prefix+ctrl+e"
 type = "plugin_action"
 command = "annotate.copy-context"
 description = "copy annotations as context"
@@ -138,13 +145,19 @@ command = "annotate.manage"
 description = "manage annotations"
 
 [[keys.command]]
-key = "prefix+shift+p"
+key = "prefix+f"
 type = "plugin_action"
 command = "annotate.open"
-description = "review documents in this folder"
+description = "review this folder, or the Markdown file matching the selection"
 
 [[keys.command]]
-key = "prefix+shift+y"
+key = "prefix+ctrl+p"
+type = "plugin_action"
+command = "annotate.open"
+description = "review this folder, or the Markdown file matching the selection"
+
+[[keys.command]]
+key = "prefix+ctrl+y"
 type = "plugin_action"
 command = "annotate.last"
 description = "review the agent's last reply"
@@ -153,18 +166,27 @@ description = "review the agent's last reply"
 name = "tokyo-night"
 auto_switch = false
 
-# Pane layout popup: herdr-pane-minimap flashes a map (plugin popup, 52x24)
-# only after a pane hop while the tab is zoomed, then closes.
+# Kitty graphics still available for other plugins. herdr-pane-minimap draws
+# in the Spaces sidebar via workspace metadata tokens ($minimap*).
 # Plugin is linked from ~/.dotfiles/herdr/pane-minimap; the watcher starts on
 # server restore. After a live `plugin link`, run that plugin's startup.sh once
-# (or restart the Herdr server) so the watcher picks up the binary.
+# (or restart the Herdr server) so the map appears without a reboot.
 [experimental]
 kitty_graphics = true
 
+# Extra Spaces rows for the pane layout map. Empty $minimap* tokens hide, so
+# only the focused workspace grows when the tab has two or more panes.
 [ui.sidebar.spaces]
 rows = [
   ["state_icon", "workspace"],
   ["branch", "git_status"],
+  [{ token = "$minimap_title", dim = true, fg = "#565f89" }],
+  [{ token = "$minimap0", fg = "#a9b1d6" }],
+  [{ token = "$minimap1", fg = "#a9b1d6" }],
+  [{ token = "$minimap2", fg = "#a9b1d6" }],
+  [{ token = "$minimap3", fg = "#a9b1d6" }],
+  [{ token = "$minimap4", fg = "#a9b1d6" }],
+  [{ token = "$minimap5", fg = "#a9b1d6" }],
 ]
 
 # Share the laptop's OpenSSH ControlMaster (IDDA / `ssh cws.*`) so CWS
@@ -176,3 +198,21 @@ manage_ssh_config = false
 
 [ui]
 agent_panel_sort = "spaces"
+# Agent titles are long sentences; the default 36-column ceiling truncates them.
+sidebar_width = 44
+sidebar_max_width = 60
+# Keep mouse selection so annotate.capture can read it. Default true copies
+# then clears, and the plugin's pbpaste from the Herdr server is often empty.
+copy_on_select = false
+
+# Agent panel rows. The default (workspace + tab, then agent) makes every
+# session in a workspace look identical. terminal_title_stripped is the
+# agent's own summary of the conversation, which is what distinguishes them.
+[ui.sidebar.agents]
+# Title first so sessions stay distinguishable. Workspace is still on the
+# second row even with agent_panel_sort = "spaces": group headers are easy
+# to miss, and the workspace name is what the grouping actually means.
+rows = [
+  ["state_icon", { token = "terminal_title_stripped", fg = "#a9b1d6" }],
+  [{ token = "workspace", dim = true }, { token = "agent", dim = true }],
+]

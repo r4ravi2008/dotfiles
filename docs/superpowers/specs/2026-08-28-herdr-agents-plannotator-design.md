@@ -53,11 +53,11 @@ Prefix is `ctrl+a`.
 | Agent picker | `prefix+a` |
 | Previous / next agent | `alt+shift+[` / `alt+shift+]` |
 | Focus agent 1–9 | `prefix+alt+1..9` |
-| Annotate capture | `prefix+shift+a` |
-| Copy annotations | `prefix+shift+c` |
+| Annotate capture | `prefix+u` / `prefix+ctrl+u` |
+| Copy annotations | `prefix+ctrl+e` |
 | Manage annotations | `prefix+m` |
-| Folder review | `prefix+shift+p` |
-| Last agent reply | `prefix+shift+y` |
+| Folder review | `prefix+f` / `prefix+ctrl+p` |
+| Last agent reply | `prefix+ctrl+y` |
 
 Upstream annotate uses `prefix+a` / `prefix+o` / `prefix+shift+o`. Those are already picker, cycle pane, and notifications here.
 
@@ -67,7 +67,7 @@ Remote attach already passes `--remote-keybindings server` via the zsh `herdr` w
 
 ## Review flow
 
-`prefix+shift+p` or `prefix+shift+y` opens plannotator-tui as a Herdr overlay. Send or `E` posts the review as the agent's next message. `q` closes. `plannotator annotate --gate` is a different program and still opens a browser.
+`prefix+f` / `prefix+ctrl+p` or `prefix+ctrl+y` opens plannotator-tui as a Herdr overlay. Send or `E` posts the review as the agent's next message. `q` closes. `plannotator annotate --gate` is a different program and still opens a browser. `prefix+shift+p` stays Herdr's pane rename.
 
 ## Failure
 

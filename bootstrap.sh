@@ -1160,6 +1160,47 @@ patch_herdr_agents() {
 	fi
 }
 
+# annotate.open ignores terminal selection and always opens the folder. Point it
+# at open-from-selection.sh so a unique Markdown quote opens that file instead.
+patch_herdr_annotate() {
+	local root dest src
+	root="$(herdr plugin list --plugin annotate --json 2>/dev/null \
+		| python3 -c 'import json,sys; d=json.load(sys.stdin); ps=d.get("result",{}).get("plugins") or []; print(ps[0].get("plugin_root","") if ps else "")' 2>/dev/null || true)"
+	if [[ ! -d "$root/scripts" ]]; then
+		return 0
+	fi
+	src="$DOTFILES_DIR/herdr/open-from-selection.sh"
+	dest="$root/scripts/open-from-selection.sh"
+	if [[ ! -f "$src" ]]; then
+		log_warn "herdr/open-from-selection.sh missing; skipped annotate open patch"
+		return 0
+	fi
+	install -m 755 "$src" "$dest"
+	python3 - "$root/herdr-plugin.toml" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+if "open-from-selection.sh" in text:
+    raise SystemExit(0)
+old = 'scripts/plannotator-tui.sh\\" herdr open'
+new = 'scripts/open-from-selection.sh\\"'
+if old not in text:
+    raise SystemExit(2)
+path.write_text(text.replace(old, new))
+PY
+	case $? in
+		0)
+			if grep -Fq 'open-from-selection.sh' "$root/herdr-plugin.toml"; then
+				log_success "herdr-annotate open jumps to the selected Markdown file"
+			else
+				log_info "herdr-annotate open already uses selection matching"
+			fi
+			;;
+		2) log_warn "herdr-annotate open command changed upstream; skipped selection patch" ;;
+	esac
+}
+
 start_herdr_server() {
 	export PATH="$HOME/.local/bin:$PATH"
 	if ! command -v herdr >/dev/null 2>&1; then
@@ -1371,12 +1412,22 @@ main() {
 			if (cd "$herdr_minimap_dir" && bash build.sh >/dev/null 2>&1); then
 				herdr plugin uninstall herdr-pane-minimap >/dev/null 2>&1 || true
 				if herdr plugin link "$herdr_minimap_dir" >/dev/null 2>&1; then
-					log_success "Linked herdr-pane-minimap (zoomed-pane popup)"
+					log_success "Linked herdr-pane-minimap (sidebar layout map)"
 				else
-					log_warn "Could not link herdr-pane-minimap; zoomed-pane popup unavailable"
+					log_warn "Could not link herdr-pane-minimap; sidebar layout map unavailable"
 				fi
 			else
-				log_warn "Could not build herdr-pane-minimap (need cargo); zoomed-pane popup unavailable"
+				log_warn "Could not build herdr-pane-minimap (need cargo); sidebar layout map unavailable"
+			fi
+		fi
+
+		local herdr_titles_dir="$DOTFILES_DIR/herdr/session-titles"
+		if [[ -d "$herdr_titles_dir" ]]; then
+			herdr plugin uninstall herdr-session-titles >/dev/null 2>&1 || true
+			if herdr plugin link "$herdr_titles_dir" >/dev/null 2>&1; then
+				log_success "Linked herdr-session-titles (prefix+g agent session names)"
+			else
+				log_warn "Could not link herdr-session-titles; prefix+g will keep showing agent kinds"
 			fi
 		fi
 
@@ -1414,6 +1465,7 @@ main() {
 			"$herdr_annotate_ref" \
 			"Installed Herdr Annotate (plannotator-tui)" \
 			"Could not install plannotator/herdr-annotate" || true
+		patch_herdr_annotate || true
 	else
 		log_warn "Herdr is not installed; skipped Herdr pane-navigation plugins"
 	fi

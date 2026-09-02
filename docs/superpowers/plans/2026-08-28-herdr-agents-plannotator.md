@@ -6,7 +6,7 @@ The first pass on this branch installed Chromium plus `official.browser` / `offi
 
 ## What bootstrap does
 
-- `herdr/config.toml`: agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate remaps (`prefix+shift+a` / `c` / `p` / `y`, `prefix+m`)
+- `herdr/config.toml`: agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate remaps (`prefix+f` / `prefix+ctrl+p` folder, `prefix+ctrl+y` last, `prefix+u` capture, `prefix+ctrl+e` copy, `prefix+m` manage), `copy_on_select = false`
 - `packages.conf` `cli`: `bun` (not Chromium). `_fallback_bun` if brew/apt cannot
 - Pin `dleen/herdr-agents` `74f8550a1008156f811b0bc8663ac251d9f3fcd6`
 - Pin `plannotator/herdr-annotate` `fb93a1318f960792452cef6cde72a2c4f4591241` (plugin id `annotate`)
@@ -25,4 +25,4 @@ command -v bun
 grep -E '^chromium[[:space:]]*\|' packages.conf && echo FAIL_chromium_still_listed
 ```
 
-`official.browser` and `official.plannotator` should be absent. `prefix+shift+p` opens plannotator-tui in Herdr.
+`official.browser` and `official.plannotator` should be absent. `prefix+f` or `prefix+ctrl+p` opens plannotator-tui in Herdr.
