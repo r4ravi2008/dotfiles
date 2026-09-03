@@ -198,6 +198,9 @@ manage_ssh_config = false
 
 [ui]
 agent_panel_sort = "spaces"
+# tmux-style splits: one shared divider line between panes, not a gap + double box.
+pane_gaps = false
+pane_outer_borders = false
 # Agent titles are long sentences; the default 36-column ceiling truncates them.
 sidebar_width = 44
 sidebar_max_width = 60
