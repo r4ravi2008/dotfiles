@@ -1373,7 +1373,9 @@ main() {
 	if is_cloud_workspace && [[ -d /workspace ]]; then
 		rm -f "$HOME/.config/herdr/config.toml"
 		cp "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
-		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n\n# Keep mouse selection so annotate.capture works over herdr --remote.\n[ui]\ncopy_on_select = false\n' >>"$HOME/.config/herdr/config.toml"
+		# Base config already has [ui] copy_on_select = false; do not append a second
+		# [ui] table — herdr rejects duplicate table headers on reload-config.
+		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n' >>"$HOME/.config/herdr/config.toml"
 	fi
 	if command -v herdr >/dev/null 2>&1; then
 		mkdir -p "$HOME/.pi/agent/extensions"
