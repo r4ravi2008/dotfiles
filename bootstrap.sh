@@ -556,6 +556,25 @@ _fallback_bun() {
 	return 1
 }
 
+_fallback_uv() {
+	export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+	if command -v uv >/dev/null 2>&1; then
+		log_success "uv already installed"
+		return 0
+	fi
+	log_info "Installing uv via official installer..."
+	if curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR="$HOME/.local/bin" sh; then
+		hash -r 2>/dev/null || true
+		export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+		if command -v uv >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/uv" ]]; then
+			log_success "Installed uv"
+			return 0
+		fi
+	fi
+	log_warn "uv install failed"
+	return 1
+}
+
 _fallback_plannotator() {
 	export PATH="$HOME/.local/bin:$PATH"
 	log_info "Installing plannotator (core skills + extras)..."
