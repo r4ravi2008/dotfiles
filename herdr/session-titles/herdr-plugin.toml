@@ -2,7 +2,7 @@ id = "herdr-session-titles"
 name = "Session Titles"
 version = "0.1.0"
 min_herdr_version = "0.8.0"
-description = "Copy agent OSC titles into pane metadata so prefix+g shows session names"
+description = "Pane titles for prefix+g: agent sessions, cwd, terminal OSC titles, or foreground process"
 platforms = ["macos", "linux"]
 
 # Detached watcher: pane.updated is not a legal [[events]] hook (high volume).

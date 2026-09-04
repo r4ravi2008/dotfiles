@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy terminal_title_stripped onto pane metadata titles for prefix+g."""
+"""Set pane metadata titles for prefix+g: agent sessions, cwd, OSC titles, or process."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ HERDR = os.environ.get("HERDR_BIN_PATH") or "herdr"
 SOCKET_PATH = os.environ.get("HERDR_SOCKET_PATH") or os.path.expanduser(
     "~/.config/herdr/herdr.sock"
 )
+HOME = os.path.expanduser("~")
 
 AGENT_KIND_TITLES = {
     "antigravity",
@@ -41,6 +42,17 @@ AGENT_KIND_TITLES = {
     "pi",
     "qoder",
     "qwen",
+}
+
+SHELL_NAMES = {
+    "bash",
+    "csh",
+    "dash",
+    "fish",
+    "nu",
+    "sh",
+    "tcsh",
+    "zsh",
 }
 
 
@@ -97,9 +109,21 @@ def pane_get(pane_id: str) -> dict | None:
     return pane if isinstance(pane, dict) else None
 
 
-def useful_title(pane: dict) -> str | None:
-    if not pane.get("agent"):
-        return None
+def pane_process_info(pane_id: str, cache: dict[str, dict | None]) -> dict | None:
+    if pane_id in cache:
+        return cache[pane_id]
+    try:
+        data = herdr_json("pane", "process-info", "--pane", pane_id)
+        info = data.get("process_info")
+        if not isinstance(info, dict):
+            info = data if isinstance(data, dict) else None
+    except RuntimeError:
+        info = None
+    cache[pane_id] = info
+    return info
+
+
+def clean_terminal_title(pane: dict) -> str | None:
     title = (pane.get("terminal_title_stripped") or pane.get("terminal_title") or "").strip()
     if not title:
         return None
@@ -112,19 +136,82 @@ def useful_title(pane: dict) -> str | None:
     ).strip()
     if not title:
         return None
-    agent = str(pane.get("agent") or "").strip().lower()
     lowered = title.lower()
-    if lowered == agent or lowered in AGENT_KIND_TITLES:
+    if lowered in AGENT_KIND_TITLES:
         return None
-    if lowered.startswith("pane "):
+    if re.fullmatch(r"pane\s+\S+", lowered):
+        return None
+    agent = str(pane.get("agent") or "").strip().lower()
+    if agent and lowered == agent:
         return None
     return title
 
 
+def format_cwd(path: str | None) -> str | None:
+    if not path:
+        return None
+    path = path.strip()
+    if not path:
+        return None
+    if path == HOME:
+        return "~"
+    prefix = HOME + os.sep
+    if path.startswith(prefix):
+        return "~" + path[len(HOME) :]
+    parts = [part for part in path.rstrip(os.sep).split(os.sep) if part]
+    if len(parts) > 3:
+        return ".../" + "/".join(parts[-2:])
+    return path
+
+
+def foreground_process(info: dict | None) -> dict | None:
+    if not info:
+        return None
+    processes = info.get("foreground_processes")
+    if not isinstance(processes, list) or not processes:
+        return None
+    proc = processes[0]
+    return proc if isinstance(proc, dict) else None
+
+
+def process_label(proc: dict) -> str:
+    argv0 = str(proc.get("argv0") or proc.get("name") or "").strip()
+    if not argv0:
+        return "process"
+    return os.path.basename(argv0)
+
+
+def shell_or_app_title(pane: dict, process_cache: dict[str, dict | None]) -> str | None:
+    terminal = clean_terminal_title(pane)
+    if terminal:
+        return terminal
+
+    info = pane_process_info(str(pane.get("pane_id") or ""), process_cache)
+    proc = foreground_process(info)
+    if not proc:
+        cwd = pane.get("foreground_cwd") or pane.get("cwd")
+        return format_cwd(str(cwd) if cwd else None)
+
+    name = process_label(proc).lower()
+    cwd = proc.get("cwd") or pane.get("foreground_cwd") or pane.get("cwd")
+    if name in SHELL_NAMES:
+        return format_cwd(str(cwd) if cwd else None) or name
+    label = process_label(proc)
+    cwd_short = format_cwd(str(cwd) if cwd else None)
+    if cwd_short and cwd_short not in ("~", "/"):
+        return f"{label} · {cwd_short}"
+    return label
+
+
+def pane_display_title(pane: dict, process_cache: dict[str, dict | None]) -> str | None:
+    if pane.get("label"):
+        return None
+    if pane.get("agent"):
+        return clean_terminal_title(pane)
+    return shell_or_app_title(pane, process_cache)
+
+
 def report_title(state: dict, pane_id: str, title: str | None, agent: str | None) -> None:
-    previous = (state.get("titles") or {}).get(pane_id)
-    if title == previous:
-        return
     state["seq"] = int(state.get("seq") or 0) + 1
     cmd = [
         HERDR,
@@ -155,22 +242,31 @@ def report_title(state: dict, pane_id: str, title: str | None, agent: str | None
     save_seq(state)
 
 
-def sync_pane(state: dict, pane: dict) -> None:
+def sync_pane(
+    state: dict,
+    pane: dict,
+    process_cache: dict[str, dict | None],
+) -> None:
     pane_id = pane.get("pane_id")
     if not pane_id:
         return
-    title = useful_title(pane)
+    title = pane_display_title(pane, process_cache)
+    previous = (state.get("titles") or {}).get(pane_id)
+    current = (pane.get("title") or "").strip() or None
+    if title == previous and title == current:
+        return
     agent = pane.get("agent")
-    agent_label = str(agent) if agent else None
+    agent_label = str(agent) if agent and title else None
     try:
-        report_title(state, pane_id, title, agent_label if title else None)
+        report_title(state, pane_id, title, agent_label)
     except RuntimeError as exc:
         log(f"{pane_id}: {exc}")
 
 
 def sync_all(state: dict) -> None:
+    process_cache: dict[str, dict | None] = {}
     for pane in panes_from_list():
-        sync_pane(state, pane)
+        sync_pane(state, pane, process_cache)
 
 
 def pane_id_from_event(event: dict) -> str | None:
@@ -224,7 +320,7 @@ def handle_event(state: dict, event: dict) -> None:
         return
     pane = pane_get(pane_id)
     if pane:
-        sync_pane(state, pane)
+        sync_pane(state, pane, {})
 
 
 def watch() -> None:
