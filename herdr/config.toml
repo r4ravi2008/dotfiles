@@ -162,6 +162,50 @@ type = "plugin_action"
 command = "annotate.last"
 description = "review the agent's last reply"
 
+# Herdr Mirror: one local Herdr for local + remote CWS workspaces.
+# Native prefix+shift+s stays Settings; pause is CLI `herdr-mirror pause`.
+[[keys.command]]
+key = "prefix+shift+m"
+type = "plugin_action"
+command = "mirror.start"
+description = "start or resume Herdr Mirror"
+
+[[keys.command]]
+key = "prefix+shift+b"
+type = "plugin_action"
+command = "mirror.restore"
+description = "restore locally closed Herdr Mirror workspaces"
+
+[[keys.command]]
+key = "prefix+shift+n"
+type = "plugin_action"
+command = "mirror.new-workspace-pick"
+description = "new workspace on this machine or a mirrored host"
+
+[[keys.command]]
+key = "prefix+alt+n"
+type = "plugin_action"
+command = "mirror.remote-new-workspace"
+description = "new workspace on the remote Herdr host"
+
+[[keys.command]]
+key = "prefix+alt+c"
+type = "plugin_action"
+command = "mirror.remote-new-tab"
+description = "new tab on the remote host when inside a mirror"
+
+[[keys.command]]
+key = "prefix+alt+v"
+type = "plugin_action"
+command = "mirror.remote-split-right"
+description = "split the mirrored remote pane right"
+
+[[keys.command]]
+key = "prefix+alt+minus"
+type = "plugin_action"
+command = "mirror.remote-split-down"
+description = "split the mirrored remote pane down"
+
 [theme]
 name = "tokyo-night"
 auto_switch = false
