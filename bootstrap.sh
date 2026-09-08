@@ -1395,7 +1395,7 @@ main() {
 		cp "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 		# Base config already has [ui] copy_on_select = false; do not append a second
 		# [ui] table — herdr rejects duplicate table headers on reload-config.
-		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\nnew_cwd = "/workspace"\n' >>"$HOME/.config/herdr/config.toml"
+		printf '\n# CWS: new panes start in the workspace mount, not $HOME.\n[terminal]\nnew_cwd = "/workspace"\n' >>"$HOME/.config/herdr/config.toml"
 	fi
 	if command -v herdr >/dev/null 2>&1; then
 		mkdir -p "$HOME/.pi/agent/extensions"
