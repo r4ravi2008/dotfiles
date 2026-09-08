@@ -345,7 +345,7 @@ _fallback_herdr() {
 
 # Pin Herdr on CWS (and fallback installs) so `herdr --remote` matches the laptop.
 # Do not use https://herdr.dev/install.sh — that always fetches latest.json.
-HERDR_PINNED_VERSION="0.8.2"
+HERDR_PINNED_VERSION="0.9.0"
 
 # LazyVim needs Neovim 0.11+. Debian's neovim package is often 0.10.x.
 NVIM_MIN_VERSION="0.11"

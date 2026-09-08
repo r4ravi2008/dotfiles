@@ -168,8 +168,14 @@ type = "plugin_action"
 command = "annotate.last"
 description = "review the agent's last reply"
 
-# Herdr Mirror: one local Herdr for local + remote CWS workspaces.
-# Native prefix+shift+s stays Settings; pause is CLI `herdr-mirror pause`.
+# Herdr Mirror (nikok6/herdr-mirror): mirrors remote workspaces into the local
+# sidebar so multiple CWS hosts appear alongside Local at once. Herdr 0.9.0 adds
+# native saved SSH machines (`herdr machine add <host> --label <name>`); see
+# https://herdr.dev/docs/connecting-machines/. Native machines switch context
+# (one machine streams panes at a time) and need 0.9.0 on the remote with
+# surface_interest/health_check — they do not replace Mirror for simultaneous
+# multi-host sidebar or CWS exec-relay (`api_transport = exec` in hosts.toml).
+# Keep Mirror until native machines cover that workflow. Pause: `herdr-mirror pause`.
 [[keys.command]]
 key = "prefix+shift+m"
 type = "plugin_action"
