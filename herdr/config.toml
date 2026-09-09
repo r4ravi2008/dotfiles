@@ -123,17 +123,11 @@ type = "plugin_action"
 command = "rmarganti.herdr-pluck.open-url"
 description = "open visible URL"
 
-# Annotate. Folder: prefix then f (or keep holding Ctrl and press p).
-# Comment: prefix then u. Ctrl+U is line-kill in the shell if prefix is missed.
+# Annotate. Folder: prefix then f. Capture: prefix then u.
+# Ctrl+U is line-kill in the shell if prefix is missed.
 # Shift+letter is just a capital letter; prefix+shift+p is Herdr's rename_pane.
 [[keys.command]]
 key = "prefix+u"
-type = "plugin_action"
-command = "annotate.capture"
-description = "annotate selected terminal text"
-
-[[keys.command]]
-key = "prefix+ctrl+u"
 type = "plugin_action"
 command = "annotate.capture"
 description = "annotate selected terminal text"
@@ -152,12 +146,6 @@ description = "manage annotations"
 
 [[keys.command]]
 key = "prefix+f"
-type = "plugin_action"
-command = "annotate.open"
-description = "review this folder, or the Markdown file matching the selection"
-
-[[keys.command]]
-key = "prefix+ctrl+p"
 type = "plugin_action"
 command = "annotate.open"
 description = "review this folder, or the Markdown file matching the selection"
