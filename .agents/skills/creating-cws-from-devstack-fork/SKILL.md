@@ -3,18 +3,19 @@ name: creating-cws-from-devstack-fork
 description: >-
   Use when creating, recreating, starting, or attaching a production Intuit
   Cloud Workspace using the rkommineni/devstack fork, or when tempted to use
-  IDDA, use-computer-mcp, Computer Use, herdr --remote, HERDR_ENV unset,
-  cloud-workspaces/devstack, kit up, Open in, or to install tools inside the
-  workspace.
+  IDDA, use-computer-mcp, Computer Use, cloud-workspaces/devstack, kit up,
+  Open in, skip herdr-mirror, herdr machine as CWS attach,
+  cloudworkspaces-edit_workspace_file as attach, or to install tools
+  inside the workspace.
 ---
 
 # Creating a CWS from the DevStack fork
 
-Create with the cloudworkspaces MCP. Attach with `herdr machine add`, then open a pane on that machine.
+Create with the cloudworkspaces MCP. Put the box on this Herdr client with Herdr Mirror (`api_transport = "exec"`) so CWS workspaces appear as local `<prefix>: <name>` panes.
 
-Do not SSH-forward laptop ports 8787, 3118, or 19432. Cursor owns those locally. If you are already on the target workspace, skip attach.
+`cws.*` SSH already forwards 8787, 3118, and 19432. Do not bounce to another Cursor chat for tunnels. If you are already on the target workspace, skip attach.
 
-**REQUIRED SUB-SKILL:** Use `herdr` after attach.
+**REQUIRED SUB-SKILL:** Use `herdr` after Herdr Mirror has copied CWS workspaces into this client.
 
 Callers such as `developing-in-cws` pass `tags`. This skill does not read Jira or create feature branches.
 
@@ -23,7 +24,7 @@ Callers such as `developing-in-cws` pass `tags`. This skill does not read Jira o
 - New prod CWS that must pick up `cws-dotfiles` (cloned only at create time)
 - Recreate after a bootstrap miss. Do not patch the live box.
 - Start a stopped box, or attach to an existing `cws.*` host
-- Another skill needs a fork-seeded CWS plus a Herdr saved machine and a pane on it
+- Another skill needs a fork-seeded CWS plus a Herdr Mirror of that host
 
 Skip this skill if you are about to `kit up` a local kind DevStack, pointing at `cloud-workspaces/devstack`, or reaching for IDDA.
 
@@ -56,23 +57,7 @@ Remotes, wait probes, tunnels, and the bootstrap checklist are in `reference.md`
    - RUNNING: reuse it. `add_workspace_tags` for any missing caller tags.
    - Missing, or no tags: `create_workspace` with that fork URL, `region` `us-west`, and caller `tags` when provided. Use the current fork if this session is already on one.
 3. Poll `get_workspace` until `RUNNING`, then confirm SSH from the wait section in `reference.md` (`get_workspace_info` plus `hostname`). Do **not** wait for user `bootstrap.sh` to exit. Record `provisioned_via: cloudworkspaces-mcp`.
-4. If this environment is already that workspace (`/.cws` exists), skip this step. Otherwise attach from the local Herdr pane (`HERDR_ENV=1` stays set). Host is `cws.<workspace-name>` from `get_workspace`.
-
-   ```bash
-   herdr machine list --json
-   herdr machine add cws.<workspace-name> --label '<primary-tag-or-workspace-name>'
-   herdr machine list --json
-   ```
-
-   Skip `add` when that SSH target is already saved and enabled. `add` must persist a profile. CWS bootstrap `nohup herdr server` is not a saved-machine daemon; if add asks to restart the remote server so it survives SSH loss, answer **y** on a box you just provisioned. If it prints `not ready for saved machines` with no prompt, run the same `machine add` via `herdr pane run` in a sibling TTY and send `y`. Do not restart when the remote already has the user's live agents unless they asked. Do not approve experimental handoff.
-
-   Local `herdr pane` talks to Local. Open a pane **on that machine**:
-
-   ```bash
-   ssh -o BatchMode=yes cws.<workspace-name> 'herdr workspace list'
-   ```
-
-   No workspace: `herdr workspace create --cwd /workspace --label <workspace-name> --no-focus`. Workspace exists: `herdr pane list` then `herdr pane split <pane-id> --cwd /workspace/<repo> --no-focus` (or use the root pane). Read IDs from JSON. Follow `herdr` (remote IDs from the host CLI). Record `attached_with_herdr: true`.
+4. If this environment is already that workspace, skip this step. Otherwise attach per `reference.md` Attach (Herdr Mirror, `api_transport = "exec"`). Follow `herdr`. Record `attached_with_herdr: true` only after `herdr-mirror status` shows the host connected and local `herdr workspace list` includes `<prefix>: ...`.
 
 If the verify checklist fails, fix `cws-dotfiles`, `git push cws HEAD:main`, and create a new workspace. Do not `brew`, `npm`, or `npx skills` on the box. CWS Node is 18, and `npx skills` dies on `util.styleText`.
 
@@ -82,7 +67,7 @@ If the verify checklist fails, fix `cws-dotfiles`, `git push cws HEAD:main`, and
 
 | Excuse | Reality |
 |---|---|
-| "Skill still requires IDDA / use-computer-mcp" | Old path. This skill is cloudworkspaces MCP plus `herdr machine add`. |
+| "Skill still requires IDDA / use-computer-mcp" | Old path. This skill is cloudworkspaces MCP plus Herdr Mirror. |
 | "MCP skips fork/dotfiles bootstrap" | Create still clones `cws-dotfiles` once. Seed the fork URL. |
 | "Staff says click IDDA, MCP is unofficial" | MCP is the create path. IDDA is a red flag. |
 | "developing-in-cws already inlines create_workspace" | Callers invoke this skill. Do not duplicate it there. |
@@ -90,16 +75,19 @@ If the verify checklist fails, fix `cws-dotfiles`, `git push cws HEAD:main`, and
 | "Push origin/main so CWS sees it" | CWS clones `cws-dotfiles` on GHES. `origin` is public GitHub. |
 | "Install hunk/plannotator on the box tonight" | Create-time bootstrap only. Patching the box proves nothing. |
 | "npx skills add. Node is there" | Node 18. Bundle extras in dotfiles instead. |
-| "Need a Mac Cursor chat for 8787" | Laptop Cursor owns 8787/3118. Do not SSH-forward them. |
+| "Need a Mac Cursor chat for 8787" | Forwards are on every `cws.*` SSH. Stay put. |
 | "kit up / make is faster" | Local kind, not prod CWS. |
-| "Open in Cursor if herdr is slow" | Skips remote keybindings. Use `herdr machine add`. |
-| "Wait for pgrep bootstrap.sh before machine add" | Attach as soon as SSH works. Unanchored `pgrep -f bootstrap.sh` matches the probe's own `bash -l -c` and never returns. |
-| "run_workspace_command is attach enough" | Attach is `herdr machine add` plus a pane on that machine. |
-| "`herdr --remote` is attach" | Nested TUI. Saved machine plus a pane on that host. |
-| "Unset HERDR_ENV so nested herdr can attach" | Stay in local Herdr. `machine add` is a CLI. |
-| "LocalForward 8787/3118/19432 so CWS OAuth works" | Steals Cursor's laptop ports. Leave them local. |
+| "Open in Cursor if herdr is slow" | Skips wrapper tunnels and remote keybindings. |
+| "Wait for pgrep bootstrap.sh before herdr-mirror" | Attach as soon as SSH `hostname` works and remote Herdr can sync. Unanchored `pgrep -f bootstrap.sh` matches the probe's own `bash -l -c` and never returns. |
+| "run_workspace_command is attach enough" | Attach is Herdr Mirror: `api_transport = exec`, `herdr-mirror start`, local `<prefix>: ...` workspace. |
+| "herdr machine add is one window like Mirror" | Saved machines do not retarget this pane's CLI. CWS needs exec relay. |
+| "api_transport auto / socket is fine" | CWS sshd does not service streamlocal unix forwards. `exec` is required. |
+| "Staff proved SSH herdr pane list as attach" | SSH `herdr` is not attach. Mirror makes CWS panes local. |
+| "MCP file edits are the attach" | MCP writes are not attach and leave no `/resume` trace. |
+| "Kill Cursor to free 8787" | Bind IPv4+IPv6 forwards. Do not kill the user's Cursor. |
 | "Enable share.plannotator.ai for the phone" | Keep `PLANNOTATOR_SHARE=disabled`. |
-| "Set PLANNOTATOR_REMOTE=0 for local-only" | CWS zsh still uses 19432 on the box. That is not a laptop LocalForward. |
+| "ClearAllForwardings on the laptop tunnel session" | Drops 8787/3118/19432. Dedicated `-fN` only. Isolated SSH is for wait/checklist, not for driving Herdr. |
+| "Set PLANNOTATOR_REMOTE=0 for local-only" | That breaks the 19432 tunnel. REMOTE=1 is not a public share. |
 
 ## Red flags
 
@@ -111,9 +99,13 @@ Stop if any of these show up:
 - `kit up`, `make` in devstack, or `ssh devstack` on port 32222
 - `brew` / `npm i -g` / `npx skills` inside the workspace
 - Open in Cursor
-- `herdr --remote`
-- Unsetting `HERDR_ENV` (`HERDR_ENV=`, `env -u HERDR_ENV`)
 - Unanchored `pgrep -f bootstrap.sh` as an attach gate
 - `cloudworkspaces-run_workspace_command` as attach
+- `cloudworkspaces-edit_workspace_file` as attach or implementation
+- `herdr machine add` as CWS attach
+- SSH `herdr pane list` / `herdr agent prompt` as CWS attach or drive
+- `herdr --remote`
+- `herdr-mirror teardown`
+- `api_transport` left at `auto`/`socket` for a `cws.*` host
 - `PLANNOTATOR_SHARE` not `disabled`
-- `LocalForward` 8787, 3118, or 19432 on `cws.*`
+- Killing Cursor to steal port 8787
