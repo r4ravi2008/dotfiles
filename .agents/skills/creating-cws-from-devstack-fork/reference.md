@@ -41,30 +41,35 @@ Do not use IDDA, Computer Use, or `use-computer-mcp` for create. `delete_workspa
 5. `pgrep -f 'bash /home/coder/.dotfiles/bootstrap.sh'` is empty on the box.
 6. `git -C ~/.dotfiles log -1 --oneline` on the box matches the `cws/main` tip you pushed.
 
-Host block example: `Host cws.devstack-<id>`, `ProxyCommand` via `bastion.cws.cwsppdusw2.iks2.a.intuit.com`, user `coder`, key `~/.ssh/cws_id_rsa`. Laptop `Include` of `ssh/cws-mcp-forwards.conf` merges IPv4+IPv6 `LocalForward` for 8787 / 3118 / 19432 onto every `cws.*`.
+Host block example: `Host cws.devstack-<id>`, `ProxyCommand` via `bastion.cws.cwsppdusw2.iks2.a.intuit.com`, user `coder`, key `~/.ssh/cws_id_rsa`. Do not Include `ssh/cws-mcp-forwards.conf`. Do not LocalForward 8787, 3118, or 19432 onto `cws.*`.
 
 ## Attach
 
+Keep `HERDR_ENV=1`. Do not unset it. Do not run `herdr --remote`.
+
 ```bash
-herdr --remote cws.devstack-<id>
+herdr machine list --json
+herdr machine add cws.devstack-<id> --label '<primary-tag-or-workspace-name>'
+herdr machine list --json
+ssh -o BatchMode=yes cws.devstack-<id> 'herdr workspace list'
+# no workspace:
+ssh -o BatchMode=yes cws.devstack-<id> 'herdr workspace create --cwd /workspace --label devstack-<id> --no-focus'
+# workspace exists: pane list, then pane split <id> --cwd /workspace/<repo> --no-focus
 ```
 
-Wrapper (`zsh/zshrc`):
+Local `herdr pane` / `herdr workspace` talk to Local. Remote IDs come from `ssh cws.devstack-<id> herdr …`. `attached_with_herdr` is true when `machine list` has this host enabled and that host has a pane.
 
-- `_herdr_ensure_cws_forwards`: if `127.0.0.1:8787` is not owned by `ssh`, run `ssh -fN -n -o ControlMaster=no -o ControlPath=none cws.devstack-<id>`.
-- Injects `--remote-keybindings server` so `herdr-nvim-nav` Alt+hjkl works.
+CWS `nohup herdr server` is not a saved-machine daemon (`detached_server_daemon` false). `machine add` may ask to restart so the server survives SSH loss. On a box you just provisioned, answer **y**. If add fails with `not ready for saved machines` and no prompt, `herdr pane run` the same `machine add` in a sibling TTY (still `HERDR_ENV=1`) and send `y`. Do not restart over the user's live remote agents unless they asked.
+
+Wrapper (`zsh/zshrc`): leftover `--remote` still gets `--remote-keybindings server` so `herdr-nvim-nav` Alt+hjkl works. Attach itself is `machine add`. The wrapper must not `ssh -fN` MCP/Plannotator ports.
 
 `herdr/config.toml`: `[remote] manage_ssh_config = false` so Herdr reuses the laptop ControlMaster / SSH config.
 
-Isolated probe (does not steal laptop 8787):
+Isolated probe:
 
 ```bash
 ssh -o ClearAllForwardings=yes -o ControlMaster=no -o ControlPath=none coder@cws.devstack-<id> '…'
 ```
-
-If you must test callbacks without fighting Cursor on `::1:8787`, use unique laptop ports in a **throwaway** ssh config (`28787→8787`, `23118→3118`, `29432→19432`) bound on both `127.0.0.1` and `[::1]`. Do not kill Cursor.
-
-Chrome resolves `localhost` to `::1` first. IPv4-only forwards leave Atlassian/Slack to a local Cursor helper (`ERR_CONNECTION_RESET`). Forwards in `cws-mcp-forwards.conf` bind both.
 
 ## E2E checklist (bootstrap only)
 
@@ -80,11 +85,11 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `plannotator` | CLI present; extras `plannotator-compound`, `plannotator-setup-goal`, `plannotator-visual-explainer` |
 | Core plannotator skills | `plannotator-review` / `annotate` / `last` land in **Claude** (`~/.claude/skills`). Cursor extras only unless copied. Plan-intercept hook is Claude `ExitPlanMode`, not Cursor. |
 | Share | `PLANNOTATOR_SHARE=disabled`, `~/.plannotator/config.json` `{"share":"disabled"}`, `PLANNOTATOR_JINA=0` |
-| Remote UI | CWS zsh: `PLANNOTATOR_REMOTE=1` `PLANNOTATOR_PORT=19432`. This is the SSH tunnel, not a public share. Agent terminal stays off unless `PLANNOTATOR_AGENT_TERMINAL_REMOTE=1` (do not enable). |
+| Remote UI | CWS zsh: `PLANNOTATOR_REMOTE=1` `PLANNOTATOR_PORT=19432` on the box. Not a laptop LocalForward. Agent terminal stays off unless `PLANNOTATOR_AGENT_TERMINAL_REMOTE=1` (do not enable). |
 | Matt Pocock | `setup-matt-pocock-skills`, `tdd`, `grill-me`, … in `~/.agents/skills` (git clone; not `npx skills`) |
 | `commit` | `~/.cursor/skills/commit` (Jira-prefixed conventional commit) |
 | go-style-guide | `/workspace/go-style-guide` and `go-*` skills unless `DEVSTACK_SETUP_GO_STYLE_GUIDE=0` |
-| Tunnels | `ssh -G cws.devstack-<id>` lists IPv4 and `::1` LocalForwards for 8787, 3118, 19432 |
+| Tunnels | `ssh -G cws.devstack-<id>` has no LocalForward for 8787, 3118, or 19432 |
 | Herdr plugins | `dleen.herdr-agents` @ `74f8550a1008156f811b0bc8663ac251d9f3fcd6`; `annotate` (`plannotator/herdr-annotate`) @ `fb93a1318f960792452cef6cde72a2c4f4591241` (or documented skip/warn). `official.browser` and `official.plannotator` absent. |
 | `herdr-pane-minimap` | plugin linked; binary `herdr-pane-minimap` exists in the plugin dir **or** bootstrap warn `Could not build herdr-pane-minimap` / `Could not link` |
 | `kitty_graphics` | `true` in `~/.config/herdr/config.toml` |
@@ -94,7 +99,7 @@ Run over SSH after bootstrap exits. Do not install anything.
 
 ## OAuth callbacks
 
-Start Atlassian/Slack auth inside the workspace. The browser hits `localhost:8787` / `3118` because `cws-mcp-forwards.conf` is on every `cws.*` SSH. If Cursor owns `::1:8787`, use `http://127.0.0.1:8787/...`.
+Atlassian/Slack OAuth for laptop Cursor stays on the laptop (`localhost:8787` / `3118`). Do not tunnel those ports through `cws.*` SSH.
 
 ## Cleanup
 

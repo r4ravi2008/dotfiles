@@ -94,35 +94,26 @@ merge_json_settings() {
 	return 1
 }
 
-# Laptop: Include Host cws.* LocalForwards so herdr --remote / ssh / Desktop App
-# tunnel Atlassian (8787), Slack (3118), and Plannotator (19432) without a manual ssh -L.
-ensure_cws_mcp_ssh_forwards() {
-	local snippet="$DOTFILES_DIR/ssh/cws-mcp-forwards.conf"
+# Laptop: CWS MCP/Plannotator LocalForwards stole Cursor's 8787/3118/19432.
+# Strip the Include if an older bootstrap added it.
+remove_cws_mcp_ssh_forwards() {
 	local ssh_config="$HOME/.ssh/config"
-	local include_line="Include $snippet"
-
-	if [[ ! -f "$snippet" ]]; then
-		log_warn "Missing $snippet; skipping CWS MCP SSH forwards"
-		return
+	local snippet="$DOTFILES_DIR/ssh/cws-mcp-forwards.conf"
+	[[ -f "$ssh_config" ]] || return 0
+	if ! grep -Fq "$snippet" "$ssh_config"; then
+		return 0
 	fi
-
-	mkdir -p "$HOME/.ssh"
-	if [[ -f "$ssh_config" ]] && grep -Fq "$snippet" "$ssh_config"; then
-		log_info "SSH already includes CWS MCP OAuth forwards"
-		return
-	fi
-
 	local tmp
 	tmp="$(mktemp)"
-	{
-		echo "# dotfiles: CWS forwards (8787 Atlassian, 3118 Slack, 19432 Plannotator)"
-		echo "$include_line"
-		echo ""
-		[[ -f "$ssh_config" ]] && cat "$ssh_config"
-	} > "$tmp"
+	awk -v snippet="$snippet" '
+		$0 ~ /^# dotfiles: CWS (forwards|MCP)/ { next }
+		index($0, snippet) { next }
+		prev_blank && $0 == "" { next }
+		{ prev_blank = ($0 == ""); print }
+	' "$ssh_config" > "$tmp"
 	mv "$tmp" "$ssh_config"
 	chmod 600 "$ssh_config" 2>/dev/null || true
-	log_success "Added CWS MCP OAuth SSH forwards to ~/.ssh/config"
+	log_success "Removed CWS MCP OAuth SSH forwards from ~/.ssh/config"
 }
 
 # CWS: merge into remote IDE machine settings (written before user bootstrap).
@@ -152,23 +143,30 @@ merge_cws_ide_machine_settings() {
 	fi
 }
 
-# Laptop: Cursor Remote-SSH user settings so Desktop Cursor also forwards the callbacks.
-merge_laptop_cursor_forward_settings() {
-	local src="$DOTFILES_DIR/cursor/cws-remote-settings.json"
+# Laptop: drop CWS MCP/Plannotator default forwards from Cursor user settings.
+strip_laptop_cws_port_forwards() {
 	local dest="$HOME/Library/Application Support/Cursor/User/settings.json"
 
 	if [[ "$(uname)" != "Darwin" ]]; then
 		return
 	fi
-	if [[ ! -f "$src" ]]; then
+	if [[ ! -f "$dest" ]]; then
 		return
 	fi
-	if [[ ! -d "$(dirname "$dest")" ]]; then
-		log_info "Cursor user settings directory missing; skip laptop Cursor port-forward merge"
-		return
-	fi
-	if merge_json_settings "$dest" "$src"; then
-		log_success "Merged MCP port-forward settings into Cursor user settings"
+	local tmp
+	tmp="$(mktemp)"
+	if jq '
+		del(."remote.SSH.defaultForwardedPorts")
+		| if ."remote.portsAttributes" then
+			."remote.portsAttributes" |= (del(."8787") | del(."3118") | del(."19432"))
+		  else . end
+		| if (."remote.portsAttributes" // {}) == {} then del(."remote.portsAttributes") else . end
+	' "$dest" > "$tmp"; then
+		mv "$tmp" "$dest"
+		log_success "Removed CWS MCP port forwards from Cursor user settings"
+	else
+		rm -f "$tmp"
+		log_warn "Failed to strip CWS port forwards from Cursor user settings"
 	fi
 }
 
@@ -1494,12 +1492,11 @@ main() {
 
 	if [[ "$DOTFILES_PROFILE" == "cws" ]]; then
 		start_herdr_server
-		log_info "Configuring MCP OAuth port forwards for Cursor/VS Code..."
 		merge_cws_ide_machine_settings
 	else
-		log_info "Setting up CWS MCP OAuth SSH forwards..."
-		ensure_cws_mcp_ssh_forwards
-		merge_laptop_cursor_forward_settings
+		log_info "Removing CWS MCP OAuth SSH forwards from the laptop..."
+		remove_cws_mcp_ssh_forwards
+		strip_laptop_cws_port_forwards
 
 		log_info "Setting up Ghostty configuration..."
 		mkdir -p "$HOME/.config/ghostty"

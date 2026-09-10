@@ -32,8 +32,8 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, Ghostty, lazygit, H
 │   │   └── mcp.json    # MCP server configurations
 │   ├── rulesync.jsonc  # Rulesync configuration
 │   └── ...             # Generated per-tool outputs (.cursor/, .claude/, etc.)
-├── cursor/             # Cursor remote settings (MCP OAuth port forwards)
-├── ssh/                # Laptop SSH includes (CWS MCP OAuth LocalForwards)
+├── cursor/             # Cursor remote settings (no MCP LocalForwards)
+├── ssh/                # Laptop SSH snippets (CWS MCP LocalForwards disabled)
 ├── bootstrap.sh        # Installation script
 └── AGENTS.md           # This file
 ```
@@ -77,7 +77,7 @@ This repository contains dotfiles for LazyVim (Neovim), zsh, Ghostty, lazygit, H
 - `creating-cws-from-devstack-fork` and `developing-in-cws` sit in `.agents/skills/`, symlinked into `~/.agents/skills`. Not in `.rulesync/skills`.
 - Skills live in `~/.agents/skills`. Personal skills (`.rulesync/skills` and `.agents/skills`) are symlinked in; third-party kits come from `npx skills add --global`. `~/.claude/skills` and `~/.cursor/skills` symlink to that dir.
 - Hunk (`hunk`) and Plannotator (`plannotator`) are CLI tools from `packages.conf`. Bootstrap also installs Hunk's review skill and Plannotator extras (`compound`, `setup-goal`, `visual-explainer`). Sharing is off (`PLANNOTATOR_SHARE=disabled` and `~/.plannotator/config.json`).
-- CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so the laptop can SSH-tunnel the Plannotator web UI. That is not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+f` folder, or the Markdown file matching the terminal selection; `prefix+ctrl+y` last reply; `prefix+u` capture). Needs Bun. Laptop Herdr sets `copy_on_select = false` so capture and selection-open can read the mouse selection.
+- CWS sets `PLANNOTATOR_REMOTE=1` and `PLANNOTATOR_PORT=19432` so Plannotator can listen on the box. That is not a laptop SSH LocalForward and not a public share. `plannotator annotate` still opens a browser. In Herdr, review with `plannotator/herdr-annotate` (`prefix+f` folder, or the Markdown file matching the terminal selection; `prefix+ctrl+y` last reply; `prefix+u` capture). Needs Bun. Laptop Herdr sets `copy_on_select = false` so capture and selection-open can read the mouse selection.
 - Bootstrap pins `dleen.herdr-agents` (`prefix+a` picker, previous/next `alt+shift+[` / `alt+shift+]`, focus `prefix+alt+1..9`), builds/links `herdr-pane-minimap` (Spaces sidebar layout map), and links `herdr-session-titles` (copies agent OSC titles into pane metadata so prefix+g shows session names).
 
 #### Rulesync (Source of Truth)
@@ -100,7 +100,7 @@ The `bootstrap.sh` script:
 5. Sets up AI agent configurations (OpenCode, Cursor, Claude Code)
 6. `npx skills add --global` for third-party kits, then symlink personal skills and `~/.claude/skills` / `~/.cursor/skills` into `~/.agents/skills`
 7. Backs up existing configs before overwriting
-8. Laptop: Includes `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` so every `cws.*` host forwards MCP OAuth callbacks (8787 Atlassian, 3118 Slack) and Plannotator (19432). CWS: merges the same ports into Cursor/VS Code machine settings. Do not put these in a project `devcontainer.json`.
+8. Laptop: strip `ssh/cws-mcp-forwards.conf` from `~/.ssh/config` and drop 8787/3118/19432 from Cursor user settings. Those ports belong to laptop Cursor. CWS may still listen on 19432 for Plannotator on the box.
 
 ## Development Guidelines
 

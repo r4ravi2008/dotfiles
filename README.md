@@ -60,10 +60,10 @@ SSH host aliases are written on the **laptop** by the CWS CLI, not inside the wo
 cws login
 cws config-ssh
 ssh coder@cws.<workspace-name>          # confirm SSH first
-herdr --remote cws.<workspace-name>
+herdr machine add cws.<workspace-name> --label <name>
 ```
 
-If `Host cws.<name>` already sets `User coder`, `herdr --remote cws.<name>` is enough. The zsh `herdr` wrapper opens the same SSH mux (and `LocalForward`s) as `ssh` before attaching. Detach with `ctrl+b q`.
+If `Host cws.<name>` already sets `User coder`, that target is enough for `herdr machine add`. Do not LocalForward 8787, 3118, or 19432. Detach leftover `--remote` with `ctrl+b q`.
 
 CWS profile skips Ghostty, skhd, and Podman (the image already has Docker). It still installs AWS CLI and Rust. Interactive Bash `exec`s zsh via `.bash_aliases` unless `CWS_KEEP_BASH=1`.
 
@@ -92,8 +92,8 @@ Notes:
 - `herdr/`: Herdr keys and the Neovim bridge action bindings
 - `opencode/`: OpenCode app config, custom plugins, and slash commands
 - `ai-agents/`: rulesync inputs + generated outputs for AI coding tools
-- `cursor/`: Cursor remote settings (MCP OAuth + Plannotator auto-forward)
-- `ssh/cws-mcp-forwards.conf`: LocalForward 8787 (Atlassian), 3118 (Slack), and 19432 (Plannotator) on every `cws.*` host
+- `cursor/`: Cursor remote settings (auto-forward only; no 8787/3118/19432 defaults)
+- `ssh/cws-mcp-forwards.conf`: stub. Do not Include it. MCP/Plannotator LocalForwards steal laptop ports.
 
 ## Making changes
 
@@ -106,7 +106,7 @@ Notes:
 - Required: `git`, `zsh`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
 - Optional: `herdr` 0.8.0+ for agent workspaces and Neovim pane navigation
-- Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share.
+- Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). CWS may listen on 19432; that is not a laptop SSH LocalForward.
 - Bootstrap installs Bun so `plannotator/herdr-annotate` can fetch plannotator-tui. `plannotator annotate` still opens a browser.
 - Skills install into `~/.agents/skills`. `~/.claude/skills` and `~/.cursor/skills` are symlinks to that dir. Third-party kits use `npx skills add --global` (Node 20+). Lockfile: `ai-agents/.skill-lock.json`.
 
