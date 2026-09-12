@@ -1063,6 +1063,7 @@ setup_ai_agents() {
 	# pstack first; Matt Pocock overwrites tdd/teach.
 	_install_skills_pkg "backnotprop/pstack" || true
 	_install_skills_pkg "mattpocock/skills" || true
+	_install_skills_pkg "pbakaus/impeccable" || true
 	if command -v hunk >/dev/null 2>&1; then
 		_install_skills_pkg "modem-dev/hunk" || true
 	fi
