@@ -100,11 +100,12 @@ Run over SSH after bootstrap exits. Do not install anything.
 | `commit` | `~/.cursor/skills/commit` (Jira-prefixed conventional commit) |
 | go-style-guide | `/workspace/go-style-guide` and `go-*` skills unless `DEVSTACK_SETUP_GO_STYLE_GUIDE=0` |
 | Tunnels | `ssh -G cws.devstack-<id>` lists IPv4 and `::1` LocalForwards for 8787, 3118, 19432 |
-| Herdr plugins | `dleen.herdr-agents` @ `74f8550a1008156f811b0bc8663ac251d9f3fcd6`; `annotate` (`plannotator/herdr-annotate`) @ `fb93a1318f960792452cef6cde72a2c4f4591241` (or documented skip/warn). `official.browser` and `official.plannotator` absent. |
+| Herdr plugins | `dleen.herdr-agents` @ `74f8550a1008156f811b0bc8663ac251d9f3fcd6`; `annotate` (`plannotator/herdr-annotate`) @ `5d94eadfed96e4064b692718cef143afeb0931d3` (or documented skip/warn); `persiyanov.reviewr` (`persiyanov/herdr-reviewr`) @ `4c090225af706bf3aaa24b39fea890a72994f40f`. `official.browser` and `official.plannotator` absent. |
 | `herdr-pane-minimap` | plugin linked; binary `herdr-pane-minimap` exists in the plugin dir **or** bootstrap warn `Could not build herdr-pane-minimap` / `Could not link` |
 | `kitty_graphics` | `true` in `~/.config/herdr/config.toml` |
 | Agent keys | `previous_agent`/`next_agent`/`focus_agent` as above; `dleen.herdr-agents.open` on `prefix+a` |
 | Annotate keys | `annotate.open` `prefix+f`; `annotate.last` `prefix+ctrl+y`; `annotate.capture` `prefix+u`; `copy_on_select = false` in herdr config (and the CWS-copied config) |
+| Reviewr | `persiyanov.reviewr.toggle` on `prefix+shift+f`; plugin config linked from `herdr/reviewr/config.toml` (`theme = "tokyo-night"`, `default_scope = "branch"`) |
 | Annotate deps | `bun` on PATH (plugin build fetches plannotator-tui) **or** bootstrap warn |
 
 ## OAuth callbacks

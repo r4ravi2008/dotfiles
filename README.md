@@ -31,7 +31,7 @@ After bootstrap:
 
 - Creates symlinks from your home directory into `~/.dotfiles/`
 - Backs up any existing files it would replace to `~/.dotfiles_backup/<timestamp>/`
-- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate folder `prefix+f`, last `prefix+ctrl+y`, capture `prefix+u`), installs Pi as the default agent with regular OpenCode and Codex still available, exposes the ChatGPT-bundled Codex CLI and code-mode host to Herdr shells, configures Codex's CA bundle, keeps regular OpenCode's data separate from OpenCode2, installs the agents' Herdr session integrations, builds `herdr-nvim-nav` and `herdr-pane-minimap` (Spaces sidebar layout map), links `herdr-session-titles`, and installs `herdr-splits`, `dleen/herdr-agents`, and `plannotator/herdr-annotate` when Herdr is available
+- Links Herdr keys (agent picker `prefix+a`, previous/next `alt+shift+[` / `]`, focus `prefix+alt+1..9`, annotate folder `prefix+f`, last `prefix+ctrl+y`, capture `prefix+u`, code review `prefix+shift+f`), installs Pi as the default agent with regular OpenCode and Codex still available, exposes the ChatGPT-bundled Codex CLI and code-mode host to Herdr shells, configures Codex's CA bundle, keeps regular OpenCode's data separate from OpenCode2, installs the agents' Herdr session integrations, builds `herdr-nvim-nav` and `herdr-pane-minimap` (Spaces sidebar layout map), links `herdr-session-titles`, and installs `herdr-splits`, `dleen/herdr-agents`, `plannotator/herdr-annotate`, and `persiyanov/herdr-reviewr` when Herdr is available
 - Installs zsh plugin repos (autosuggestions + syntax-highlighting) into the oh-my-zsh custom plugin dir
 - Sets up OpenCode config and plugin directories under `~/.config/opencode/`
 - Links rulesync-generated AI agent outputs when present (OpenCode MCP config + `~/AGENTS.md`)
@@ -105,7 +105,7 @@ Notes:
 - Required: `git`, `zsh`, `nvim`, `node` (for rulesync and OpenCode plugin deps)
 - Recommended: `fzf`, `fd`, `ripgrep`, `zoxide`
 - Optional: `herdr` 0.8.0+ for agent workspaces and Neovim pane navigation
-- Optional: `hunk` (diff review TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share.
+- Optional: `hunk` (standalone diff TUI) and `plannotator` (web plan review, extras, sharing disabled). 19432 is the CWS SSH tunnel, not a public share. In Herdr, git diffs use `persiyanov/herdr-reviewr` (`prefix+shift+f`).
 - Bootstrap installs Bun so `plannotator/herdr-annotate` can fetch plannotator-tui. `plannotator annotate` still opens a browser.
 - Skills install into `~/.agents/skills`. `~/.claude/skills` and `~/.cursor/skills` are symlinks to that dir. Third-party kits use `npx skills add --global` (Node 20+). Lockfile: `ai-agents/.skill-lock.json`.
 

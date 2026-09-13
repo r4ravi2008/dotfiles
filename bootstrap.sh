@@ -94,26 +94,35 @@ merge_json_settings() {
 	return 1
 }
 
-# Laptop: CWS MCP/Plannotator LocalForwards stole Cursor's 8787/3118/19432.
-# Strip the Include if an older bootstrap added it.
-remove_cws_mcp_ssh_forwards() {
-	local ssh_config="$HOME/.ssh/config"
+# Laptop: Include Host cws.* LocalForwards so herdr --remote / ssh / Desktop App
+# tunnel Atlassian (8787), Slack (3118), and Plannotator (19432) without a manual ssh -L.
+ensure_cws_mcp_ssh_forwards() {
 	local snippet="$DOTFILES_DIR/ssh/cws-mcp-forwards.conf"
-	[[ -f "$ssh_config" ]] || return 0
-	if ! grep -Fq "$snippet" "$ssh_config"; then
-		return 0
+	local ssh_config="$HOME/.ssh/config"
+	local include_line="Include $snippet"
+
+	if [[ ! -f "$snippet" ]]; then
+		log_warn "Missing $snippet; skipping CWS MCP SSH forwards"
+		return
 	fi
+
+	mkdir -p "$HOME/.ssh"
+	if [[ -f "$ssh_config" ]] && grep -Fq "$snippet" "$ssh_config"; then
+		log_info "SSH already includes CWS MCP OAuth forwards"
+		return
+	fi
+
 	local tmp
 	tmp="$(mktemp)"
-	awk -v snippet="$snippet" '
-		$0 ~ /^# dotfiles: CWS (forwards|MCP)/ { next }
-		index($0, snippet) { next }
-		prev_blank && $0 == "" { next }
-		{ prev_blank = ($0 == ""); print }
-	' "$ssh_config" > "$tmp"
+	{
+		echo "# dotfiles: CWS forwards (8787 Atlassian, 3118 Slack, 19432 Plannotator)"
+		echo "$include_line"
+		echo ""
+		[[ -f "$ssh_config" ]] && cat "$ssh_config"
+	} > "$tmp"
 	mv "$tmp" "$ssh_config"
 	chmod 600 "$ssh_config" 2>/dev/null || true
-	log_success "Removed CWS MCP OAuth SSH forwards from ~/.ssh/config"
+	log_success "Added CWS MCP OAuth SSH forwards to ~/.ssh/config"
 }
 
 # CWS: merge into remote IDE machine settings (written before user bootstrap).
@@ -143,30 +152,23 @@ merge_cws_ide_machine_settings() {
 	fi
 }
 
-# Laptop: drop CWS MCP/Plannotator default forwards from Cursor user settings.
-strip_laptop_cws_port_forwards() {
+# Laptop: Cursor Remote-SSH user settings so Desktop Cursor also forwards the callbacks.
+merge_laptop_cursor_forward_settings() {
+	local src="$DOTFILES_DIR/cursor/cws-remote-settings.json"
 	local dest="$HOME/Library/Application Support/Cursor/User/settings.json"
 
 	if [[ "$(uname)" != "Darwin" ]]; then
 		return
 	fi
-	if [[ ! -f "$dest" ]]; then
+	if [[ ! -f "$src" ]]; then
 		return
 	fi
-	local tmp
-	tmp="$(mktemp)"
-	if jq '
-		del(."remote.SSH.defaultForwardedPorts")
-		| if ."remote.portsAttributes" then
-			."remote.portsAttributes" |= (del(."8787") | del(."3118") | del(."19432"))
-		  else . end
-		| if (."remote.portsAttributes" // {}) == {} then del(."remote.portsAttributes") else . end
-	' "$dest" > "$tmp"; then
-		mv "$tmp" "$dest"
-		log_success "Removed CWS MCP port forwards from Cursor user settings"
-	else
-		rm -f "$tmp"
-		log_warn "Failed to strip CWS port forwards from Cursor user settings"
+	if [[ ! -d "$(dirname "$dest")" ]]; then
+		log_info "Cursor user settings directory missing; skip laptop Cursor port-forward merge"
+		return
+	fi
+	if merge_json_settings "$dest" "$src"; then
+		log_success "Merged MCP port-forward settings into Cursor user settings"
 	fi
 }
 
@@ -1180,6 +1182,8 @@ patch_herdr_agents() {
 
 # annotate.open ignores terminal selection and always opens the folder. Point it
 # at open-from-selection.sh so a unique Markdown quote opens that file instead.
+# annotate.last names the pane process; unknown names (Cursor's node) become
+# Claude. Point last at annotate-last.sh so Cursor dumps its transcript instead.
 patch_herdr_annotate() {
 	local root dest src
 	root="$(herdr plugin list --plugin annotate --json 2>/dev/null \
@@ -1194,28 +1198,64 @@ patch_herdr_annotate() {
 		return 0
 	fi
 	install -m 755 "$src" "$dest"
+	local last_src
+	for last_src in annotate-last.sh annotate-last.py; do
+		src="$DOTFILES_DIR/herdr/$last_src"
+		dest="$root/scripts/$last_src"
+		if [[ ! -f "$src" ]]; then
+			log_warn "herdr/$last_src missing; skipped annotate last patch"
+		else
+			install -m 755 "$src" "$dest"
+		fi
+	done
 	python3 - "$root/herdr-plugin.toml" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
+scripts = path.parent / "scripts"
 text = path.read_text()
-if "open-from-selection.sh" in text:
-    raise SystemExit(0)
-old = 'scripts/plannotator-tui.sh\\" herdr open'
-new = 'scripts/open-from-selection.sh\\"'
-if old not in text:
+changed = False
+
+def replace_once(old, new, already):
+    global text, changed
+    if already in text:
+        return True
+    if old not in text:
+        return False
+    text = text.replace(old, new)
+    changed = True
+    return True
+
+open_ok = replace_once(
+    'scripts/plannotator-tui.sh\\" herdr open',
+    'scripts/open-from-selection.sh\\"',
+    "open-from-selection.sh",
+)
+last_ok = True
+if (scripts / "annotate-last.sh").is_file():
+    last_ok = replace_once(
+        'scripts/plannotator-tui.sh\\" herdr last',
+        'scripts/annotate-last.sh\\"',
+        "annotate-last.sh",
+    )
+if changed:
+    path.write_text(text)
+if not open_ok:
     raise SystemExit(2)
-path.write_text(text.replace(old, new))
+if not last_ok:
+    raise SystemExit(3)
 PY
 	case $? in
 		0)
 			if grep -Fq 'open-from-selection.sh' "$root/herdr-plugin.toml"; then
 				log_success "herdr-annotate open jumps to the selected Markdown file"
-			else
-				log_info "herdr-annotate open already uses selection matching"
+			fi
+			if grep -Fq 'annotate-last.sh' "$root/herdr-plugin.toml"; then
+				log_success "herdr-annotate last reviews the focused pane's agent"
 			fi
 			;;
 		2) log_warn "herdr-annotate open command changed upstream; skipped selection patch" ;;
+		3) log_warn "herdr-annotate last command changed upstream; skipped last-message patch" ;;
 	esac
 }
 
@@ -1486,17 +1526,31 @@ main() {
 			"Installed Herdr Annotate (plannotator-tui)" \
 			"Could not install plannotator/herdr-annotate" || true
 		patch_herdr_annotate || true
+		local herdr_reviewr_ref="4c090225af706bf3aaa24b39fea890a72994f40f"
+		install_herdr_github_plugin persiyanov.reviewr persiyanov/herdr-reviewr \
+			"$herdr_reviewr_ref" \
+			"Installed Herdr reviewr (code review pane)" \
+			"Could not install persiyanov/herdr-reviewr; prefix+shift+f unavailable" || true
+		local herdr_reviewr_conf_dir
+		herdr_reviewr_conf_dir="$(herdr plugin config-dir persiyanov.reviewr 2>/dev/null || true)"
+		if [[ -n "$herdr_reviewr_conf_dir" && -f "$DOTFILES_DIR/herdr/reviewr/config.toml" ]]; then
+			mkdir -p "$herdr_reviewr_conf_dir"
+			rm -f "$herdr_reviewr_conf_dir/herdr-splits.conf"
+			create_symlink "$DOTFILES_DIR/herdr/reviewr/config.toml" \
+				"$herdr_reviewr_conf_dir/config.toml"
+		fi
 	else
 		log_warn "Herdr is not installed; skipped Herdr pane-navigation plugins"
 	fi
 
 	if [[ "$DOTFILES_PROFILE" == "cws" ]]; then
 		start_herdr_server
+		log_info "Configuring MCP OAuth port forwards for Cursor/VS Code..."
 		merge_cws_ide_machine_settings
 	else
-		log_info "Removing CWS MCP OAuth SSH forwards from the laptop..."
-		remove_cws_mcp_ssh_forwards
-		strip_laptop_cws_port_forwards
+		log_info "Setting up CWS MCP OAuth SSH forwards..."
+		ensure_cws_mcp_ssh_forwards
+		merge_laptop_cursor_forward_settings
 
 		log_info "Setting up Ghostty configuration..."
 		mkdir -p "$HOME/.config/ghostty"
