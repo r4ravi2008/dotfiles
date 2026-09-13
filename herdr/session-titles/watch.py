@@ -127,15 +127,6 @@ def clean_terminal_title(pane: dict) -> str | None:
     title = (pane.get("terminal_title_stripped") or pane.get("terminal_title") or "").strip()
     if not title:
         return None
-    title = re.sub(r"\s+[-–—]\s+[✅⏳✗×●○].*$", "", title).strip()
-    title = re.sub(
-        r"\s+[-–—]\s+(ready|working|idle|done)\b.*$",
-        "",
-        title,
-        flags=re.IGNORECASE,
-    ).strip()
-    if not title:
-        return None
     lowered = title.lower()
     if lowered in AGENT_KIND_TITLES:
         return None
@@ -211,8 +202,14 @@ def pane_display_title(pane: dict, process_cache: dict[str, dict | None]) -> str
     return shell_or_app_title(pane, process_cache)
 
 
+def next_seq(state: dict) -> int:
+    current = int(state.get("seq") or 0)
+    floor = int(time.time() * 1000)
+    return max(current, floor) + 1
+
+
 def report_title(state: dict, pane_id: str, title: str | None, agent: str | None) -> None:
-    state["seq"] = int(state.get("seq") or 0) + 1
+    state["seq"] = next_seq(state)
     cmd = [
         HERDR,
         "pane",
