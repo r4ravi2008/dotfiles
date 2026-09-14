@@ -1518,9 +1518,20 @@ main() {
 			"Installed Herdr agents picker" \
 			"Could not install dleen/herdr-agents; prefix+a picker unavailable" || true
 		patch_herdr_agents || true
-		# Prior bootstraps installed the Chrome presenter. Drop it.
+		# Prior bootstraps installed the Chrome presenter and the in-terminal
+		# browser cask. Prefer the system browser.
 		herdr plugin uninstall official.plannotator >/dev/null 2>&1 || true
 		herdr plugin uninstall official.browser >/dev/null 2>&1 || true
+		rmdir "$HOME/.config/herdr/plugins/config/official.plannotator" >/dev/null 2>&1 || true
+		rmdir "$HOME/.config/herdr/plugins/config/official.browser" >/dev/null 2>&1 || true
+		if command -v brew >/dev/null 2>&1 && brew list --cask terminal-browser >/dev/null 2>&1; then
+			if brew uninstall --cask terminal-browser; then
+				log_success "Uninstalled terminal-browser cask"
+			else
+				log_warn "Could not uninstall terminal-browser cask"
+			fi
+		fi
+		rm -f "$HOME/.agents/skills/terminal-browser"
 		install_herdr_github_plugin annotate plannotator/herdr-annotate \
 			"$herdr_annotate_ref" \
 			"Installed Herdr Annotate (plannotator-tui)" \
